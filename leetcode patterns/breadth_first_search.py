@@ -2,7 +2,11 @@
 
 from collections import deque
 
-def bfs(start_node):
+def bfs(start_node, target):
+    # Placeholder for the neighbor logic so the code runs
+    def get_neighbors(node):
+        return [] 
+
     # 1. Initialize Queue and Visited Set
     queue = deque([start_node])
     visited = set([start_node])
@@ -29,3 +33,5 @@ def bfs(start_node):
         
         # After finishing a full layer, increment distance/step
         step_count += 1
+        
+    return -1 # Return -1 if target is never reached
