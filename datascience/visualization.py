@@ -261,7 +261,414 @@ def save_multiple():
         plt.close(fig)
 
 # ============================================================================
-# 6. COLOR & STYLE NOTES
+# 6. TIME SERIES VISUALIZATION
+# ============================================================================
+
+# Time series data often needs special date handling and rolling/resampling plots.
+
+def timeseries_basic():
+    """Date formatting, resampling, rolling windows"""
+    import matplotlib.dates as mdates
+    
+    # Create time series data
+    dates = pd.date_range('2023-01-01', periods=365, freq='D')
+    ts_data = pd.DataFrame({
+        'date': dates,
+        'value': np.cumsum(np.random.randn(365)) + 100,
+        'category': np.random.choice(['A', 'B'], 365)
+    })
+    
+    fig, axes = plt.subplots(3, 1, figsize=(10, 8))
+    
+    # Basic time series line
+    axes[0].plot(ts_data['date'], ts_data['value'], linewidth=1)
+    axes[0].set_title('Time Series - Daily Values')
+    axes[0].set_ylabel('Value')
+    
+    # Rolling mean (30-day window)
+    rolling = ts_data.set_index('date')['value'].rolling(window=30).mean()
+    axes[1].plot(ts_data['date'], ts_data['value'], alpha=0.3, label='Daily')
+    axes[1].plot(rolling.index, rolling.values, color='red', linewidth=2, label='30-day MA')
+    axes[1].set_title('Time Series with Rolling Mean')
+    axes[1].set_ylabel('Value')
+    axes[1].legend()
+    
+    # Monthly resampling
+    monthly = ts_data.set_index('date')['value'].resample('M').mean()
+    axes[2].bar(monthly.index, monthly.values, width=20, alpha=0.7)
+    axes[2].set_title('Monthly Average Values')
+    axes[2].set_ylabel('Value')
+    
+    # Format x-axis dates
+    for ax in axes:
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+        ax.xaxis.set_major_locator(mdates.MonthLocator(interval=2))
+        plt.setp(ax.xaxis.get_majorticklabels(), rotation=45)
+    
+    fig.tight_layout()
+    # plt.show()
+
+def timeseries_area_stacked():
+    """Stacked area chart for composition over time"""
+    dates = pd.date_range('2023-01-01', periods=100, freq='D')
+    data = {
+        'date': dates,
+        'A': np.random.rand(100).cumsum(),
+        'B': np.random.rand(100).cumsum(),
+        'C': np.random.rand(100).cumsum()
+    }
+    df_ts = pd.DataFrame(data)
+    
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.stackplot(df_ts['date'], df_ts['A'], df_ts['B'], df_ts['C'],
+                 labels=['A', 'B', 'C'], alpha=0.7)
+    ax.set_title('Stacked Area Chart - Composition Over Time')
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Value')
+    ax.legend(loc='upper left')
+    fig.tight_layout()
+    # plt.show()
+
+# ============================================================================
+# 7. STATISTICAL VISUALIZATION
+# ============================================================================
+
+def statistical_regression():
+    """Regression line with confidence interval"""
+    # Seaborn makes this easy
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+    
+    # Seaborn regplot (includes CI)
+    sns.regplot(data=df, x='x', y='y', ax=axes[0], scatter_kws={'alpha': 0.5})
+    axes[0].set_title('Regression with 95% CI (Seaborn)')
+    
+    # Seaborn lmplot alternative (FacetGrid)
+    sns.regplot(data=df, x='x', y='y', ax=axes[1], order=2, scatter_kws={'alpha': 0.5})
+    axes[1].set_title('Polynomial Regression (order=2)')
+    
+    fig.tight_layout()
+    # plt.show()
+
+def statistical_residuals():
+    """Residual plot for regression diagnostics"""
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+    
+    # Residual plot
+    sns.residplot(data=df, x='x', y='y', ax=axes[0], lowess=True, color='steelblue')
+    axes[0].set_title('Residual Plot')
+    axes[0].axhline(0, color='red', linestyle='--', linewidth=1)
+    
+    # Q-Q plot for normality check
+    from scipy import stats
+    stats.probplot(df['noise'], dist="norm", plot=axes[1])
+    axes[1].set_title('Q-Q Plot')
+    
+    fig.tight_layout()
+    # plt.show()
+
+def statistical_error_bars():
+    """Error bars showing uncertainty"""
+    # Group data and compute stats
+    grouped = df.groupby('cat')['y'].agg(['mean', 'std', 'sem'])
+    
+    fig, axes = plt.subplots(1, 3, figsize=(14, 4))
+    
+    # Error bars with std
+    axes[0].errorbar(grouped.index, grouped['mean'], yerr=grouped['std'],
+                     fmt='o', capsize=5, capthick=2, markersize=8)
+    axes[0].set_title('Mean ± Std Dev')
+    axes[0].set_ylabel('Value')
+    
+    # Error bars with SEM
+    axes[1].errorbar(grouped.index, grouped['mean'], yerr=grouped['sem'],
+                     fmt='s', capsize=5, capthick=2, markersize=8, color='coral')
+    axes[1].set_title('Mean ± SEM')
+    axes[1].set_ylabel('Value')
+    
+    # Bar chart with error bars
+    axes[2].bar(grouped.index, grouped['mean'], yerr=grouped['std'],
+                capsize=5, alpha=0.7, color='steelblue')
+    axes[2].set_title('Bar Chart with Error Bars')
+    axes[2].set_ylabel('Value')
+    
+    fig.tight_layout()
+    # plt.show()
+
+def statistical_swarm_strip():
+    """Swarm and strip plots for categorical data"""
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+    
+    # Strip plot - jittered scatter
+    sns.stripplot(data=df, x='cat', y='y', ax=axes[0], alpha=0.6, jitter=True)
+    axes[0].set_title('Strip Plot (Jittered Points)')
+    
+    # Swarm plot - non-overlapping points (better for smaller datasets)
+    sns.swarmplot(data=df, x='cat', y='y', ax=axes[1], alpha=0.7)
+    axes[1].set_title('Swarm Plot (Non-overlapping)')
+    
+    fig.tight_layout()
+    # plt.show()
+
+# ============================================================================
+# 8. CONTOUR AND 3D PLOTS
+# ============================================================================
+
+def contour_plots():
+    """Contour plots for 2D functions/densities"""
+    # Create mesh grid
+    x_grid = np.linspace(-3, 3, 100)
+    y_grid = np.linspace(-3, 3, 100)
+    X, Y = np.meshgrid(x_grid, y_grid)
+    Z = np.sin(np.sqrt(X**2 + Y**2))
+    
+    fig, axes = plt.subplots(1, 3, figsize=(14, 4))
+    
+    # Contour lines
+    cs = axes[0].contour(X, Y, Z, levels=10, cmap='viridis')
+    axes[0].clabel(cs, inline=True, fontsize=8)
+    axes[0].set_title('Contour Lines')
+    
+    # Filled contour
+    cf = axes[1].contourf(X, Y, Z, levels=20, cmap='viridis')
+    fig.colorbar(cf, ax=axes[1])
+    axes[1].set_title('Filled Contour')
+    
+    # Contour with scatter overlay
+    axes[2].contourf(X, Y, Z, levels=20, cmap='viridis', alpha=0.6)
+    axes[2].scatter(df['x'][:50] - 5, df['noise'][:50], c='red', s=20, alpha=0.8)
+    axes[2].set_title('Contour + Scatter')
+    
+    fig.tight_layout()
+    # plt.show()
+
+def plot_3d():
+    """3D surface and scatter plots"""
+    from mpl_toolkits.mplot3d import Axes3D
+    
+    fig = plt.figure(figsize=(14, 5))
+    
+    # 3D scatter
+    ax1 = fig.add_subplot(131, projection='3d')
+    ax1.scatter(df['x'], df['y'], df['noise'], c=df['noise'], cmap='plasma', alpha=0.6)
+    ax1.set_title('3D Scatter')
+    ax1.set_xlabel('X'); ax1.set_ylabel('Y'); ax1.set_zlabel('Noise')
+    
+    # 3D surface
+    ax2 = fig.add_subplot(132, projection='3d')
+    x_grid = np.linspace(-3, 3, 50)
+    y_grid = np.linspace(-3, 3, 50)
+    X, Y = np.meshgrid(x_grid, y_grid)
+    Z = np.sin(np.sqrt(X**2 + Y**2))
+    surf = ax2.plot_surface(X, Y, Z, cmap='coolwarm', alpha=0.8)
+    ax2.set_title('3D Surface')
+    fig.colorbar(surf, ax=ax2, shrink=0.5)
+    
+    # 3D wireframe
+    ax3 = fig.add_subplot(133, projection='3d')
+    ax3.plot_wireframe(X, Y, Z, color='steelblue', alpha=0.5)
+    ax3.set_title('3D Wireframe')
+    
+    fig.tight_layout()
+    # plt.show()
+
+# ============================================================================
+# 9. PIE CHARTS & COMPOSITION
+# ============================================================================
+
+def pie_donut_charts():
+    """Pie and donut charts (use sparingly - bars often better)"""
+    counts = df['cat'].value_counts()
+    
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+    
+    # Basic pie chart
+    axes[0].pie(counts.values, labels=counts.index, autopct='%1.1f%%',
+                startangle=90, colors=sns.color_palette('pastel'))
+    axes[0].set_title('Pie Chart')
+    
+    # Donut chart (pie with hole)
+    axes[1].pie(counts.values, labels=counts.index, autopct='%1.1f%%',
+                startangle=90, colors=sns.color_palette('pastel'),
+                wedgeprops={'width': 0.4})
+    axes[1].set_title('Donut Chart')
+    
+    fig.tight_layout()
+    # plt.show()
+
+# ============================================================================
+# 10. GEOGRAPHIC MAPS
+# ============================================================================
+
+def geographic_maps():
+    """Basic choropleth and scatter maps using Plotly"""
+    # Simple US state example (requires plotly)
+    state_data = pd.DataFrame({
+        'state': ['CA', 'TX', 'FL', 'NY', 'PA'],
+        'value': [100, 85, 70, 90, 60]
+    })
+    
+    # Choropleth map
+    fig1 = px.choropleth(
+        state_data,
+        locations='state',
+        locationmode='USA-states',
+        color='value',
+        scope='usa',
+        title='Choropleth Map - US States'
+    )
+    # fig1.show()
+    
+    # Scatter map (geographic coordinates)
+    city_data = pd.DataFrame({
+        'city': ['New York', 'Los Angeles', 'Chicago', 'Houston'],
+        'lat': [40.7128, 34.0522, 41.8781, 29.7604],
+        'lon': [-74.0060, -118.2437, -87.6298, -95.3698],
+        'population': [8.4, 3.9, 2.7, 2.3]
+    })
+    
+    fig2 = px.scatter_geo(
+        city_data,
+        lat='lat',
+        lon='lon',
+        size='population',
+        hover_name='city',
+        scope='usa',
+        title='Scatter Map - US Cities'
+    )
+    # fig2.show()
+    
+    return fig1, fig2
+
+# ============================================================================
+# 11. ADVANCED LAYOUTS & CUSTOMIZATION
+# ============================================================================
+
+def advanced_subplots_gridspec():
+    """GridSpec for complex subplot arrangements"""
+    from matplotlib.gridspec import GridSpec
+    
+    fig = plt.figure(figsize=(10, 8))
+    gs = GridSpec(3, 3, figure=fig, hspace=0.4, wspace=0.4)
+    
+    # Large plot spanning multiple cells
+    ax1 = fig.add_subplot(gs[0:2, 0:2])
+    ax1.plot(df['x'], df['y'], 'o-', alpha=0.6)
+    ax1.set_title('Main Plot (2x2)')
+    
+    # Smaller plots
+    ax2 = fig.add_subplot(gs[0, 2])
+    ax2.hist(df['noise'], bins=15, color='coral', alpha=0.7)
+    ax2.set_title('Hist')
+    
+    ax3 = fig.add_subplot(gs[1, 2])
+    ax3.boxplot([df[df['cat'] == c]['y'].values for c in ['A', 'B', 'C']])
+    ax3.set_title('Box')
+    
+    ax4 = fig.add_subplot(gs[2, :])
+    ax4.scatter(df['x'], df['y'], c=df['noise'], cmap='viridis', alpha=0.6)
+    ax4.set_title('Bottom Span (1x3)')
+    
+    # plt.show()
+
+def inset_axes_example():
+    """Inset axes (plot within a plot)"""
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.plot(df['x'], df['y'], 'o-', alpha=0.6)
+    ax.set_title('Main Plot with Inset')
+    
+    # Create inset
+    ax_inset = inset_axes(ax, width="40%", height="30%", loc='upper right')
+    ax_inset.hist(df['noise'], bins=15, color='steelblue', alpha=0.7)
+    ax_inset.set_title('Inset Hist', fontsize=10)
+    
+    fig.tight_layout()
+    # plt.show()
+
+def custom_legends_colorbars():
+    """Custom legend positioning and colorbar tweaks"""
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+    
+    # Custom legend position
+    for cat_val in df['cat'].unique():
+        subset = df[df['cat'] == cat_val]
+        axes[0].scatter(subset['x'], subset['y'], label=f'Cat {cat_val}', alpha=0.7, s=50)
+    
+    # Legend outside plot area
+    axes[0].legend(loc='upper left', bbox_to_anchor=(1.02, 1), borderaxespad=0)
+    axes[0].set_title('Legend Outside')
+    
+    # Custom colorbar
+    sc = axes[1].scatter(df['x'], df['y'], c=df['noise'], cmap='coolwarm', s=50)
+    cbar = fig.colorbar(sc, ax=axes[1])
+    cbar.set_label('Noise Level', rotation=270, labelpad=20)
+    axes[1].set_title('Custom Colorbar')
+    
+    fig.tight_layout()
+    # plt.show()
+
+# ============================================================================
+# 12. ANIMATION BASICS
+# ============================================================================
+
+def animation_simple():
+    """Basic animation using FuncAnimation"""
+    from matplotlib.animation import FuncAnimation
+    
+    fig, ax = plt.subplots(figsize=(6, 4))
+    xdata, ydata = [], []
+    ln, = ax.plot([], [], 'o-', animated=True)
+    
+    def init():
+        ax.set_xlim(0, 10)
+        ax.set_ylim(0, 30)
+        return ln,
+    
+    def update(frame):
+        xdata.append(frame)
+        ydata.append(frame**0.5 * 5 + np.random.randn())
+        ln.set_data(xdata, ydata)
+        return ln,
+    
+    ani = FuncAnimation(fig, update, frames=np.linspace(0, 10, 50),
+                       init_func=init, blit=True, interval=50)
+    
+    # To save: ani.save('animation.gif', writer='pillow', fps=20)
+    # plt.show()
+    return ani
+
+# ============================================================================
+# 13. SEABORN ADVANCED PATTERNS
+# ============================================================================
+
+def seaborn_advanced():
+    """More Seaborn features: count plots, point plots, bar plots with CIs"""
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    
+    # Count plot (frequency)
+    sns.countplot(data=df, x='cat', ax=axes[0, 0], palette='Set2')
+    axes[0, 0].set_title('Count Plot')
+    
+    # Point plot (means with CI)
+    sns.pointplot(data=df, x='cat', y='y', ax=axes[0, 1], errorbar='sd', capsize=0.1)
+    axes[0, 1].set_title('Point Plot with SD')
+    
+    # Bar plot with custom estimator
+    sns.barplot(data=df, x='cat', y='y', estimator=np.median, errorbar=('pi', 75),
+                ax=axes[1, 0], palette='muted')
+    axes[1, 0].set_title('Bar Plot - Median with 75% PI')
+    
+    # Categorical scatter with box overlay
+    sns.boxplot(data=df, x='cat', y='y', ax=axes[1, 1], width=0.3, palette='pastel')
+    sns.stripplot(data=df, x='cat', y='y', ax=axes[1, 1], color='black', alpha=0.3, size=3)
+    axes[1, 1].set_title('Box + Strip Overlay')
+    
+    fig.tight_layout()
+    # plt.show()
+
+# ============================================================================
+# 14. COLOR & STYLE NOTES
 # ============================================================================
 
 # Matplotlib built-ins: plt.cm.viridis, plasma, magma, cividis, coolwarm, etc.
@@ -274,7 +681,27 @@ def save_multiple():
 # ============================================================================
 
 if __name__ == "__main__":
-    print("Visualization cheat sheet loaded. Uncomment plt.show() lines to view plots.")
+    print("=" * 70)
+    print("COMPREHENSIVE DATA SCIENCE VISUALIZATION CHEAT SHEET")
+    print("=" * 70)
+    print("\nUncomment plt.show() or fig.show() lines to view plots.")
+    print("\nSections covered:")
+    print("  1. Matplotlib basics")
+    print("  2. Seaborn statistical plots")
+    print("  3. Plotly interactive plots")
+    print("  4. General patterns & customization")
+    print("  5. Quick recipes")
+    print("  6. Time series visualization")
+    print("  7. Statistical visualization (regression, residuals, error bars)")
+    print("  8. Contour and 3D plots")
+    print("  9. Pie charts & composition")
+    print(" 10. Geographic maps")
+    print(" 11. Advanced layouts (GridSpec, insets, legends)")
+    print(" 12. Animation basics")
+    print(" 13. Seaborn advanced patterns")
+    print("=" * 70)
+    
+    # Run examples (lightweight checks)
     mpl_line_plot()
     mpl_scatter_plot()
     mpl_bar_plot()
@@ -290,3 +717,23 @@ if __name__ == "__main__":
     sns_facets()
     px_scatter(); px_line(); px_hist(); px_heatmap()
     annotate_example(); ref_lines(); ticks_custom(); log_scale(); save_multiple()
+    
+    # New sections
+    timeseries_basic()
+    timeseries_area_stacked()
+    statistical_regression()
+    statistical_residuals()
+    statistical_error_bars()
+    statistical_swarm_strip()
+    contour_plots()
+    plot_3d()
+    pie_donut_charts()
+    geographic_maps()
+    advanced_subplots_gridspec()
+    inset_axes_example()
+    custom_legends_colorbars()
+    animation_simple()
+    seaborn_advanced()
+    
+    print("\nAll visualization examples loaded successfully!")
+    print("Explore each function to learn specific patterns.")
