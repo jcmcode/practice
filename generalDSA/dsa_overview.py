@@ -1435,6 +1435,8 @@ Graphs:
 
 def build_graph(edges, directed=False, weighted=False):
     """Build adjacency list from edge list"""
+    # Each entry: node -> list of (neighbor, weight)
+    # When unweighted, weight defaults to 1 for convenience in BFS/DFS usage.
     graph = defaultdict(list)
     for u, v, *w in edges:
         weight = w[0] if weighted and w else 1
@@ -1445,10 +1447,10 @@ def build_graph(edges, directed=False, weighted=False):
 
 def bfs(graph, start):
     """Breadth-first search returning order and distance (unweighted)"""
-    visited = set([start])
-    dist = {start: 0}
-    order = []
-    q = deque([start])
+    visited = set([start])  # Track seen nodes to avoid revisits
+    dist = {start: 0}       # Level / shortest steps from start (unweighted)
+    order = []              # Visitation order
+    q = deque([start])      # Queue drives layer-by-layer expansion
     while q:
         node = q.popleft()
         order.append(node)
@@ -1474,11 +1476,12 @@ def dfs(graph, start):
 
 def topological_sort_kahn(graph):
     """Topological sort using Kahn's algorithm (works only on DAGs)"""
-    indeg = defaultdict(int)
+    indeg = defaultdict(int)  # In-degree count per node
     for u in graph:
         for v, _ in graph[u]:
             indeg[v] += 1
         indeg.setdefault(u, 0)
+    # Start with all sources (in-degree 0)
     q = deque([node for node, deg in indeg.items() if deg == 0])
     order = []
     while q:
@@ -1492,9 +1495,9 @@ def topological_sort_kahn(graph):
 
 def dijkstra(graph, start):
     """Single-source shortest paths for non-negative weights"""
-    dist = defaultdict(lambda: float('inf'))
+    dist = defaultdict(lambda: float('inf'))  # Best-known distances
     dist[start] = 0
-    pq = [(0, start)]
+    pq = [(0, start)]  # Min-heap on distance
     while pq:
         d, u = heapq.heappop(pq)
         if d != dist[u]:
@@ -1509,9 +1512,9 @@ def dijkstra(graph, start):
 def astar(graph, start, goal, heuristic):
     """A* search: graph adjacency list with weights, heuristic(node)->estimate to goal"""
     open_set = [(0, start)]  # (f = g + h, node)
-    g = defaultdict(lambda: float('inf'))
+    g = defaultdict(lambda: float('inf'))  # Actual distance so far
     g[start] = 0
-    parent = {start: None}
+    parent = {start: None}   # Path reconstruction
     while open_set:
         f, u = heapq.heappop(open_set)
         if u == goal:
@@ -1615,15 +1618,15 @@ Sorting complexities:
 
 def merge_sort(arr):
     if len(arr) <= 1:
-        return arr
+        return arr  # Base case
     mid = len(arr) // 2
-    left = merge_sort(arr[:mid])
-    right = merge_sort(arr[mid:])
-    return _merge(left, right)
+    left = merge_sort(arr[:mid])   # Sort left half
+    right = merge_sort(arr[mid:])  # Sort right half
+    return _merge(left, right)     # Merge two sorted halves
 
 def _merge(left, right):
     res = []
-    i = j = 0
+    i = j = 0  # Two pointers into left/right
     while i < len(left) and j < len(right):
         if left[i] <= right[j]:
             res.append(left[i]); i += 1
@@ -1635,24 +1638,24 @@ def _merge(left, right):
 def quick_sort(arr):
     if len(arr) <= 1:
         return arr
-    pivot = arr[len(arr) // 2]
-    lt = [x for x in arr if x < pivot]
-    eq = [x for x in arr if x == pivot]
-    gt = [x for x in arr if x > pivot]
+    pivot = arr[len(arr) // 2]         # Choose middle as pivot
+    lt = [x for x in arr if x < pivot]  # Partition less-than
+    eq = [x for x in arr if x == pivot] # Equal-to bucket
+    gt = [x for x in arr if x > pivot]  # Greater-than
     return quick_sort(lt) + eq + quick_sort(gt)
 
 def heap_sort(arr):
     h = arr[:]
-    heapq.heapify(h)
-    return [heapq.heappop(h) for _ in range(len(h))]
+    heapq.heapify(h)  # Build min-heap in O(n)
+    return [heapq.heappop(h) for _ in range(len(h))]  # Extract in order
 
 def counting_sort(nums, max_val):
-    count = [0] * (max_val + 1)
+    count = [0] * (max_val + 1)  # Frequency array
     for num in nums:
         count[num] += 1
     res = []
     for val, freq in enumerate(count):
-        res.extend([val] * freq)
+        res.extend([val] * freq)  # Append value freq times
     return res
 
 # ----------------------------------------------------------------------------
@@ -1672,9 +1675,9 @@ def binary_search(nums, target):
         if nums[mid] == target:
             return mid
         if nums[mid] < target:
-            l = mid + 1
+            l = mid + 1  # target is in right half
         else:
-            r = mid - 1
+            r = mid - 1  # target is in left half
     return -1
 
 def lower_bound(nums, target):
@@ -1683,9 +1686,9 @@ def lower_bound(nums, target):
     while l < r:
         mid = (l + r) // 2
         if nums[mid] < target:
-            l = mid + 1
+            l = mid + 1  # move right if mid too small
         else:
-            r = mid
+            r = mid       # mid could be answer; shrink right
     return l
 
 def upper_bound(nums, target):
@@ -1694,9 +1697,9 @@ def upper_bound(nums, target):
     while l < r:
         mid = (l + r) // 2
         if nums[mid] <= target:
-            l = mid + 1
+            l = mid + 1  # move right past equals
         else:
-            r = mid
+            r = mid       # mid could be answer; shrink right
     return l
 
 def binary_search_answer(low, high, predicate):
@@ -1704,9 +1707,9 @@ def binary_search_answer(low, high, predicate):
     while low < high:
         mid = (low + high) // 2
         if predicate(mid):
-            high = mid
+            high = mid      # mid works; try to find smaller
         else:
-            low = mid + 1
+            low = mid + 1   # mid fails; need larger
     return low
 
 # ----------------------------------------------------------------------------
@@ -1723,24 +1726,24 @@ DP checklist:
 def fib_bottom_up(n):
     if n <= 1:
         return n
-    a, b = 0, 1
+    a, b = 0, 1  # F(0), F(1)
     for _ in range(2, n + 1):
-        a, b = b, a + b
+        a, b = b, a + b  # shift window forward
     return b
 
 def coin_change_min(coins, amount):
     """Min coins to make amount, returns inf if impossible"""
     INF = amount + 1
     dp = [INF] * (amount + 1)
-    dp[0] = 0
+    dp[0] = 0  # 0 coins to make 0
     for coin in coins:
         for x in range(coin, amount + 1):
-            dp[x] = min(dp[x], dp[x - coin] + 1)
+            dp[x] = min(dp[x], dp[x - coin] + 1)  # either use coin or not
     return dp[amount] if dp[amount] != INF else float('inf')
 
 def lis_length(nums):
     """Longest Increasing Subsequence in O(n log n)"""
-    tails = []
+    tails = []  # tails[i] = smallest tail of an increasing subsequence of len i+1
     for x in nums:
         idx = lower_bound(tails, x)  # Smallest tail >= x
         if idx == len(tails):
@@ -1825,9 +1828,9 @@ Use two pointers to maintain a window with certain property in O(n).
 """
 
 def longest_substring_without_repeating(s):
-    seen = {}
-    left = 0
-    best = 0
+    seen = {}   # char -> last index seen
+    left = 0    # window start
+    best = 0    # best window length
     for right, ch in enumerate(s):
         if ch in seen and seen[ch] >= left:
             left = seen[ch] + 1  # shrink window past duplicate
@@ -1838,7 +1841,7 @@ def longest_substring_without_repeating(s):
 def min_subarray_len(target, nums):
     left = 0
     curr = 0
-    best = float('inf')
+    best = float('inf')  # track minimum window length meeting target
     for right, val in enumerate(nums):
         curr += val
         while curr >= target:
@@ -1856,7 +1859,7 @@ Difference arrays allow O(1) range updates followed by O(n) reconstruction.
 """
 
 def prefix_sums(nums):
-    pre = [0]
+    pre = [0]  # pre[i] holds sum of first i elements
     for x in nums:
         pre.append(pre[-1] + x)
     return pre  # pre[i] = sum of first i elements
@@ -1865,20 +1868,20 @@ def range_sum(pre, l, r):
     return pre[r] - pre[l]  # sum of nums[l:r]
 
 def difference_array(nums):
-    diff = [0] * (len(nums) + 1)
+    diff = [0] * (len(nums) + 1)  # one extra slot for range subtraction
     diff[0] = nums[0]
     for i in range(1, len(nums)):
         diff[i] = nums[i] - nums[i - 1]
     return diff
 
 def apply_range_increment(diff, l, r, delta):
-    diff[l] += delta
+    diff[l] += delta          # add at start
     if r < len(diff) - 1:
-        diff[r + 1] -= delta
+        diff[r + 1] -= delta  # subtract after end to cancel
 
 def rebuild_from_diff(diff):
     arr = [0] * (len(diff) - 1)
-    arr[0] = diff[0]
+    arr[0] = diff[0]         # prefix sum of diff reconstructs array
     for i in range(1, len(arr)):
         arr[i] = arr[i - 1] + diff[i]
     return arr
