@@ -975,6 +975,45 @@ class BinaryTree:
         if not node:
             return []
         return self.postorder(node.left) + self.postorder(node.right) + [node.val]
+
+    # Iterative traversals (avoid recursion depth limits)
+    def inorder_iterative(self, root):
+        stack, res = [], []
+        curr = root
+        while curr or stack:
+            while curr:
+                stack.append(curr)
+                curr = curr.left
+            curr = stack.pop()
+            res.append(curr.val)
+            curr = curr.right
+        return res
+
+    def preorder_iterative(self, root):
+        if not root:
+            return []
+        stack, res = [root], []
+        while stack:
+            node = stack.pop()
+            res.append(node.val)
+            if node.right:
+                stack.append(node.right)
+            if node.left:
+                stack.append(node.left)
+        return res
+
+    def postorder_iterative(self, root):
+        if not root:
+            return []
+        stack, res = [root], []
+        while stack:
+            node = stack.pop()
+            res.append(node.val)
+            if node.left:
+                stack.append(node.left)
+            if node.right:
+                stack.append(node.right)
+        return res[::-1]
     
     def level_order(self, root):
         """Level-order (BFS) traversal - O(n)"""
@@ -1172,6 +1211,44 @@ def tree_problems():
         
         return (is_valid_bst(root.left, min_val, root.val) and
                 is_valid_bst(root.right, root.val, max_val))
+
+    # --- Diameter of Binary Tree (longest path) ---
+    def diameter(root):
+        best = 0
+        def depth(node):
+            nonlocal best
+            if not node:
+                return 0
+            l = depth(node.left)
+            r = depth(node.right)
+            best = max(best, l + r)
+            return 1 + max(l, r)
+        depth(root)
+        return best
+
+    # --- Serialize / Deserialize (preorder with nulls) ---
+    def serialize(root):
+        vals = []
+        def dfs(node):
+            if not node:
+                vals.append('#'); return
+            vals.append(str(node.val))
+            dfs(node.left); dfs(node.right)
+        dfs(root)
+        return ' '.join(vals)
+    
+    def deserialize(data):
+        vals = deque(data.split())
+        def dfs():
+            if not vals:
+                return None
+            val = vals.popleft()
+            if val == '#':
+                return None
+            node = TreeNode(int(val))
+            node.left = dfs(); node.right = dfs()
+            return node
+        return dfs()
     
     return None
 
@@ -1255,6 +1332,7 @@ def heap_examples():
     min_val = heapq.heappop(min_heap)  # 1
     
     # Convert list to heap (heapify) - O(n)
+    # Use heapify when you already have all elements; faster than pushing one by one.
     arr = [3, 1, 4, 1, 5, 9, 2, 6]
     heapq.heapify(arr)
     
@@ -1340,12 +1418,632 @@ def heap_examples():
     return min_heap
 
 # ============================================================================
+# PART 2: ADVANCED STRUCTURES & ALGORITHMS
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# 11. GRAPHS
+# ----------------------------------------------------------------------------
+"""
+Graphs:
+- Represented via adjacency list (dict of node -> list[(neighbor, weight)])
+- Traversals: BFS (shortest paths in unweighted), DFS (component discovery)
+- Topological sort for DAGs
+- Shortest paths: BFS (unweighted), Dijkstra (non-negative weights)
+- Connectivity/MST helpers: Union-Find (Disjoint Set Union)
+"""
+
+def build_graph(edges, directed=False, weighted=False):
+    """Build adjacency list from edge list"""
+    graph = defaultdict(list)
+    for u, v, *w in edges:
+        weight = w[0] if weighted and w else 1
+        graph[u].append((v, weight))
+        if not directed:
+            graph[v].append((u, weight))
+    return graph
+
+def bfs(graph, start):
+    """Breadth-first search returning order and distance (unweighted)"""
+    visited = set([start])
+    dist = {start: 0}
+    order = []
+    q = deque([start])
+    while q:
+        node = q.popleft()
+        order.append(node)
+        for nei, _ in graph.get(node, []):
+            if nei not in visited:
+                visited.add(nei)
+                dist[nei] = dist[node] + 1
+                q.append(nei)
+    return order, dist
+
+def dfs(graph, start):
+    """Depth-first search returning preorder list"""
+    visited = set()
+    order = []
+    def helper(node):
+        visited.add(node)
+        order.append(node)
+        for nei, _ in graph.get(node, []):
+            if nei not in visited:
+                helper(nei)
+    helper(start)
+    return order
+
+def topological_sort_kahn(graph):
+    """Topological sort using Kahn's algorithm (works only on DAGs)"""
+    indeg = defaultdict(int)
+    for u in graph:
+        for v, _ in graph[u]:
+            indeg[v] += 1
+        indeg.setdefault(u, 0)
+    q = deque([node for node, deg in indeg.items() if deg == 0])
+    order = []
+    while q:
+        u = q.popleft()
+        order.append(u)
+        for v, _ in graph.get(u, []):
+            indeg[v] -= 1
+            if indeg[v] == 0:
+                q.append(v)
+    return order if len(order) == len(indeg) else []  # empty if cycle
+
+def dijkstra(graph, start):
+    """Single-source shortest paths for non-negative weights"""
+    dist = defaultdict(lambda: float('inf'))
+    dist[start] = 0
+    pq = [(0, start)]
+    while pq:
+        d, u = heapq.heappop(pq)
+        if d != dist[u]:
+            continue  # stale entry
+        for v, w in graph.get(u, []):
+            nd = d + w
+            if nd < dist[v]:
+                dist[v] = nd
+                heapq.heappush(pq, (nd, v))
+    return dict(dist)
+
+class UnionFind:
+    """Disjoint Set Union (Union-Find) with path compression + union by rank"""
+    def __init__(self, n):
+        self.parent = list(range(n))
+        self.rank = [0] * n
+        self.count = n
+    def find(self, x):
+        if self.parent[x] != x:
+            self.parent[x] = self.find(self.parent[x])
+        return self.parent[x]
+    def union(self, x, y):
+        rx, ry = self.find(x), self.find(y)
+        if rx == ry:
+            return False
+        if self.rank[rx] < self.rank[ry]:
+            rx, ry = ry, rx
+        self.parent[ry] = rx
+        if self.rank[rx] == self.rank[ry]:
+            self.rank[rx] += 1
+        self.count -= 1
+        return True
+
+def kruskal_mst(n, edges):
+    """Minimum Spanning Tree total weight for undirected weighted graph"""
+    uf = UnionFind(n)
+    total = 0
+    for w, u, v in sorted(edges):
+        if uf.union(u, v):
+            total += w
+    return total, uf.count  # uf.count should be 1 if fully connected
+
+# ----------------------------------------------------------------------------
+# 12. TRIES (PREFIX TREE)
+# ----------------------------------------------------------------------------
+"""
+Trie:
+- Efficient prefix queries
+- Each node holds children map and end-of-word flag
+- O(L) insert/search where L is word length
+"""
+
+class TrieNode:
+    def __init__(self):
+        self.children = {}
+        self.is_word = False
+
+class Trie:
+    def __init__(self):
+        self.root = TrieNode()
+    def insert(self, word):
+        node = self.root
+        for ch in word:
+            if ch not in node.children:
+                node.children[ch] = TrieNode()
+            node = node.children[ch]
+        node.is_word = True
+    def search(self, word):
+        node = self._find(word)
+        return bool(node and node.is_word)
+    def starts_with(self, prefix):
+        return self._find(prefix) is not None
+    def _find(self, prefix):
+        node = self.root
+        for ch in prefix:
+            if ch not in node.children:
+                return None
+            node = node.children[ch]
+        return node
+
+# ----------------------------------------------------------------------------
+# 13. SORTING ALGORITHMS
+# ----------------------------------------------------------------------------
+"""
+Sorting complexities:
+- Bubble/Insertion/Selection: O(n^2) simple, educational
+- Merge Sort: O(n log n) stable, needs O(n) extra space
+- Quick Sort: O(n log n) average, O(n^2) worst, in-place (recursive)
+- Heap Sort: O(n log n) in-place, not stable
+- Counting Sort: O(n + k) for small integer ranges
+"""
+
+def merge_sort(arr):
+    if len(arr) <= 1:
+        return arr
+    mid = len(arr) // 2
+    left = merge_sort(arr[:mid])
+    right = merge_sort(arr[mid:])
+    return _merge(left, right)
+
+def _merge(left, right):
+    res = []
+    i = j = 0
+    while i < len(left) and j < len(right):
+        if left[i] <= right[j]:
+            res.append(left[i]); i += 1
+        else:
+            res.append(right[j]); j += 1
+    res.extend(left[i:]); res.extend(right[j:])
+    return res
+
+def quick_sort(arr):
+    if len(arr) <= 1:
+        return arr
+    pivot = arr[len(arr) // 2]
+    lt = [x for x in arr if x < pivot]
+    eq = [x for x in arr if x == pivot]
+    gt = [x for x in arr if x > pivot]
+    return quick_sort(lt) + eq + quick_sort(gt)
+
+def heap_sort(arr):
+    h = arr[:]
+    heapq.heapify(h)
+    return [heapq.heappop(h) for _ in range(len(h))]
+
+def counting_sort(nums, max_val):
+    count = [0] * (max_val + 1)
+    for num in nums:
+        count[num] += 1
+    res = []
+    for val, freq in enumerate(count):
+        res.extend([val] * freq)
+    return res
+
+# ----------------------------------------------------------------------------
+# 14. SEARCHING / BINARY SEARCH PATTERNS
+# ----------------------------------------------------------------------------
+"""
+Binary search tips:
+- Invariants: mid bias to avoid overflow is mid = l + (r - l) // 2
+- Typical loop: while l <= r for exact target; while l < r for lower/upper bound
+- "Binary search on answer": search over monotonic predicate (e.g., capacity/time)
+"""
+
+def binary_search(nums, target):
+    l, r = 0, len(nums) - 1
+    while l <= r:
+        mid = (l + r) // 2
+        if nums[mid] == target:
+            return mid
+        if nums[mid] < target:
+            l = mid + 1
+        else:
+            r = mid - 1
+    return -1
+
+def lower_bound(nums, target):
+    """First index >= target"""
+    l, r = 0, len(nums)
+    while l < r:
+        mid = (l + r) // 2
+        if nums[mid] < target:
+            l = mid + 1
+        else:
+            r = mid
+    return l
+
+def upper_bound(nums, target):
+    """First index > target"""
+    l, r = 0, len(nums)
+    while l < r:
+        mid = (l + r) // 2
+        if nums[mid] <= target:
+            l = mid + 1
+        else:
+            r = mid
+    return l
+
+def binary_search_answer(low, high, predicate):
+    """Find minimal x in [low, high] such that predicate(x) is True"""
+    while low < high:
+        mid = (low + high) // 2
+        if predicate(mid):
+            high = mid
+        else:
+            low = mid + 1
+    return low
+
+# ----------------------------------------------------------------------------
+# 15. DYNAMIC PROGRAMMING PATTERNS
+# ----------------------------------------------------------------------------
+"""
+DP checklist:
+- Define state clearly (indices, remaining capacity, booleans).
+- Choose transition from previous states.
+- Initialize base cases.
+- Decide iteration order (bottom-up) or memoization (top-down).
+"""
+
+def fib_bottom_up(n):
+    if n <= 1:
+        return n
+    a, b = 0, 1
+    for _ in range(2, n + 1):
+        a, b = b, a + b
+    return b
+
+def coin_change_min(coins, amount):
+    """Min coins to make amount, returns inf if impossible"""
+    INF = amount + 1
+    dp = [INF] * (amount + 1)
+    dp[0] = 0
+    for coin in coins:
+        for x in range(coin, amount + 1):
+            dp[x] = min(dp[x], dp[x - coin] + 1)
+    return dp[amount] if dp[amount] != INF else float('inf')
+
+def lis_length(nums):
+    """Longest Increasing Subsequence in O(n log n)"""
+    tails = []
+    for x in nums:
+        idx = lower_bound(tails, x)
+        if idx == len(tails):
+            tails.append(x)
+        else:
+            tails[idx] = x
+    return len(tails)
+
+def knapsack_01(weights, values, capacity):
+    n = len(weights)
+    dp = [0] * (capacity + 1)
+    for i in range(n):
+        w, v = weights[i], values[i]
+        for c in range(capacity, w - 1, -1):
+            dp[c] = max(dp[c], dp[c - w] + v)
+    return dp[capacity]
+
+# ----------------------------------------------------------------------------
+# 16. BACKTRACKING PATTERNS
+# ----------------------------------------------------------------------------
+"""
+Backtracking tips:
+- Build partial solution; choose/try; recurse; un-choose (backtrack).
+- Prune invalid branches early.
+"""
+
+def permutations(nums):
+    res = []
+    used = [False] * len(nums)
+    path = []
+    def dfs():
+        if len(path) == len(nums):
+            res.append(path[:])
+            return
+        for i, val in enumerate(nums):
+            if used[i]:
+                continue
+            used[i] = True
+            path.append(val)
+            dfs()
+            path.pop()
+            used[i] = False
+    dfs()
+    return res
+
+def subsets(nums):
+    res = []
+    path = []
+    def dfs(i):
+        if i == len(nums):
+            res.append(path[:])
+            return
+        dfs(i + 1)
+        path.append(nums[i])
+        dfs(i + 1)
+        path.pop()
+    dfs(0)
+    return res
+
+def combination_sum(candidates, target):
+    res = []
+    path = []
+    candidates.sort()
+    def dfs(start, remain):
+        if remain == 0:
+            res.append(path[:]); return
+        for i in range(start, len(candidates)):
+            val = candidates[i]
+            if val > remain:
+                break
+            path.append(val)
+            dfs(i, remain - val)  # reuse allowed
+            path.pop()
+    dfs(0, target)
+    return res
+
+# ----------------------------------------------------------------------------
+# 17. SLIDING WINDOW PATTERNS
+# ----------------------------------------------------------------------------
+"""
+Use two pointers to maintain a window with certain property in O(n).
+"""
+
+def longest_substring_without_repeating(s):
+    seen = {}
+    left = 0
+    best = 0
+    for right, ch in enumerate(s):
+        if ch in seen and seen[ch] >= left:
+            left = seen[ch] + 1
+        seen[ch] = right
+        best = max(best, right - left + 1)
+    return best
+
+def min_subarray_len(target, nums):
+    left = 0
+    curr = 0
+    best = float('inf')
+    for right, val in enumerate(nums):
+        curr += val
+        while curr >= target:
+            best = min(best, right - left + 1)
+            curr -= nums[left]
+            left += 1
+    return 0 if best == float('inf') else best
+
+# ----------------------------------------------------------------------------
+# 18. PREFIX SUMS & DIFFERENCE ARRAYS
+# ----------------------------------------------------------------------------
+"""
+Prefix sums allow O(1) range-sum queries after O(n) preprocessing.
+Difference arrays allow O(1) range updates followed by O(n) reconstruction.
+"""
+
+def prefix_sums(nums):
+    pre = [0]
+    for x in nums:
+        pre.append(pre[-1] + x)
+    return pre  # pre[i] = sum of first i elements
+
+def range_sum(pre, l, r):
+    return pre[r] - pre[l]  # sum of nums[l:r]
+
+def difference_array(nums):
+    diff = [0] * (len(nums) + 1)
+    diff[0] = nums[0]
+    for i in range(1, len(nums)):
+        diff[i] = nums[i] - nums[i - 1]
+    return diff
+
+def apply_range_increment(diff, l, r, delta):
+    diff[l] += delta
+    if r < len(diff) - 1:
+        diff[r + 1] -= delta
+
+def rebuild_from_diff(diff):
+    arr = [0] * (len(diff) - 1)
+    arr[0] = diff[0]
+    for i in range(1, len(arr)):
+        arr[i] = arr[i - 1] + diff[i]
+    return arr
+
+# ----------------------------------------------------------------------------
+# 19. BIT MANIPULATION & MATH UTILITIES
+# ----------------------------------------------------------------------------
+"""
+Common bit tricks:
+- x & (x - 1) drops lowest set bit
+- x & -x isolates lowest set bit
+- Check power of two: x > 0 and x & (x - 1) == 0
+"""
+
+def count_set_bits(x):
+    count = 0
+    while x:
+        x &= x - 1
+        count += 1
+    return count
+
+def is_power_of_two(x):
+    return x > 0 and (x & (x - 1)) == 0
+
+def fast_pow(base, exp, mod=None):
+    """Binary exponentiation, optional modulus"""
+    res = 1
+    b = base % mod if mod else base
+    e = exp
+    while e:
+        if e & 1:
+            res = (res * b) % mod if mod else res * b
+        b = (b * b) % mod if mod else b * b
+        e >>= 1
+    return res
+
+# ----------------------------------------------------------------------------
+# 20. COMPLEXITY REFERENCE (quick glance)
+# ----------------------------------------------------------------------------
+"""
+Lookup times (average):
+- List index: O(1), insert/delete middle: O(n)
+- Dict/Set: O(1) expected
+- Heap push/pop: O(log n)
+- BST (balanced): O(log n); unbalanced: O(n)
+- Graph traversals: O(V + E)
+"""
+
+# ----------------------------------------------------------------------------
+# 21. SELF-BALANCING BST OVERVIEW (AVL / RED-BLACK)
+# ----------------------------------------------------------------------------
+"""
+Balanced BSTs keep height at O(log n).
+
+AVL Tree:
+- Balance factor = height(left) - height(right) in {-1,0,1}.
+- Rotations: LL, RR, LR, RL to fix imbalance after insert/delete.
+- Guarantees tighter balance than Red-Black; faster lookups, slower inserts.
+
+Red-Black Tree (used by std::map, TreeMap, etc.):
+Rules:
+1) Nodes are red or black
+2) Root is black
+3) Red node cannot have red child
+4) Every path from node to NULL has same # of black nodes
+Fix with rotations + recoloring; looser balance than AVL but faster updates.
+
+In Python, use `bisect` with sorted lists for small data or `sortedcontainers` (3rd-party)
+for production-grade balanced-tree behavior.
+"""
+
+# ----------------------------------------------------------------------------
+# 22. FENWICK TREE (BIT) & SEGMENT TREE (RANGE QUERIES)
+# ----------------------------------------------------------------------------
+"""
+Use these for fast prefix/range queries and point/range updates.
+
+Fenwick Tree (Binary Indexed Tree):
+- Point update O(log n), prefix sum O(log n)
+- Space O(n)
+
+Segment Tree:
+- Range query O(log n), point update O(log n)
+- Custom ops: min/max/sum/gcd; lazy propagation for range updates.
+"""
+
+class FenwickTree:
+    def __init__(self, n):
+        self.n = n
+        self.bit = [0] * (n + 1)
+    def update(self, idx, delta):
+        i = idx + 1
+        while i <= self.n:
+            self.bit[i] += delta
+            i += i & -i
+    def query(self, idx):
+        s = 0
+        i = idx + 1
+        while i > 0:
+            s += self.bit[i]
+            i -= i & -i
+        return s
+    def range_sum(self, l, r):
+        return self.query(r) - (self.query(l - 1) if l > 0 else 0)
+
+class SegmentTree:
+    def __init__(self, arr):
+        self.n = len(arr)
+        self.seg = [0] * (4 * self.n)
+        self._build(1, 0, self.n - 1, arr)
+    def _build(self, idx, l, r, arr):
+        if l == r:
+            self.seg[idx] = arr[l]; return
+        m = (l + r) // 2
+        self._build(idx*2, l, m, arr)
+        self._build(idx*2+1, m+1, r, arr)
+        self.seg[idx] = self.seg[idx*2] + self.seg[idx*2+1]
+    def update(self, pos, val):
+        def _upd(idx, l, r):
+            if l == r:
+                self.seg[idx] = val; return
+            m = (l + r) // 2
+            if pos <= m: _upd(idx*2, l, m)
+            else: _upd(idx*2+1, m+1, r)
+            self.seg[idx] = self.seg[idx*2] + self.seg[idx*2+1]
+        _upd(1, 0, self.n - 1)
+    def query(self, ql, qr):
+        def _q(idx, l, r):
+            if qr < l or r < ql:
+                return 0
+            if ql <= l and r <= qr:
+                return self.seg[idx]
+            m = (l + r) // 2
+            return _q(idx*2, l, m) + _q(idx*2+1, m+1, r)
+        return _q(1, 0, self.n - 1)
+
+# ----------------------------------------------------------------------------
+# 23. STRING MATCHING (KMP & RABIN-KARP)
+# ----------------------------------------------------------------------------
+"""
+KMP builds longest-prefix-suffix (LPS) array to avoid re-checking chars.
+Rabin-Karp uses rolling hash for expected O(n+m) with good modulus/base.
+"""
+
+def kmp_search(text, pattern):
+    if not pattern:
+        return 0
+    lps = [0] * len(pattern)
+    j = 0
+    for i in range(1, len(pattern)):
+        while j > 0 and pattern[i] != pattern[j]:
+            j = lps[j - 1]
+        if pattern[i] == pattern[j]:
+            j += 1; lps[i] = j
+    j = 0
+    for i, ch in enumerate(text):
+        while j > 0 and ch != pattern[j]:
+            j = lps[j - 1]
+        if ch == pattern[j]:
+            j += 1
+            if j == len(pattern):
+                return i - j + 1
+    return -1
+
+def rabin_karp(text, pattern, base=256, mod=10**9 + 7):
+    n, m = len(text), len(pattern)
+    if m == 0:
+        return 0
+    if m > n:
+        return -1
+    h = pow(base, m - 1, mod)
+    p_hash = t_hash = 0
+    for i in range(m):
+        p_hash = (p_hash * base + ord(pattern[i])) % mod
+        t_hash = (t_hash * base + ord(text[i])) % mod
+    for i in range(n - m + 1):
+        if p_hash == t_hash and text[i:i+m] == pattern:
+            return i
+        if i < n - m:
+            t_hash = (t_hash - ord(text[i]) * h) % mod
+            t_hash = (t_hash * base + ord(text[i + m])) % mod
+            t_hash %= mod
+    return -1
+
+# ============================================================================
 # MAIN - Testing Examples
 # ============================================================================
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("DATA STRUCTURES & ALGORITHMS CHEAT SHEET - PART 1")
+    print("DATA STRUCTURES & ALGORITHMS CHEAT SHEET - PARTS 1 & 2")
     print("=" * 60)
     
     print("\n1. ARRAYS/LISTS")
@@ -1417,7 +2115,54 @@ if __name__ == "__main__":
     min_heap.push(4)
     print(f"Min: {min_heap.peek()}")
     print(f"Pop min: {min_heap.pop()}")
+
+    print("\n11. GRAPHS")
+    print("-" * 60)
+    g = build_graph([(0, 1), (1, 2), (2, 3), (0, 3)], directed=False)
+    order, dist = bfs(g, 0)
+    print(f"BFS order: {order}")
+    print(f"Distances: {dist}")
+
+    print("\n12. TRIES")
+    print("-" * 60)
+    trie = Trie()
+    for w in ["apple", "app", "apt"]:
+        trie.insert(w)
+    print(f"Search 'app': {trie.search('app')}")
+    print(f"Starts with 'ap': {trie.starts_with('ap')}")
+
+    print("\n13. SORTING & SEARCHING")
+    print("-" * 60)
+    sample = [5, 1, 4, 2, 8]
+    print(f"Merge sort: {merge_sort(sample)}")
+    print(f"Binary search (4): {binary_search(sorted(sample), 4)}")
+
+    print("\n14. DP & BACKTRACKING")
+    print("-" * 60)
+    print(f"Fib(10): {fib_bottom_up(10)}")
+    print(f"Coin change [1,2,5] -> 11: {coin_change_min([1,2,5], 11)}")
+    print(f"Permutations of [1,2,3] (count): {len(permutations([1,2,3]))}")
+
+    print("\n15. SLIDING WINDOW & PREFIX")
+    print("-" * 60)
+    print(f"Longest substring without repeat in 'abcabcbb': {longest_substring_without_repeating('abcabcbb')}")
+    pre = prefix_sums([1, 2, 3, 4])
+    print(f"Range sum [1,3): {range_sum(pre, 1, 3)}")
+
+    print("\n16. FENWICK TREE / SEGMENT TREE")
+    print("-" * 60)
+    ft = FenwickTree(5)
+    for i, v in enumerate([1, 2, 3, 4, 5]):
+        ft.update(i, v)
+    print(f"Fenwick prefix sum idx 3: {ft.query(3)}")
+    st = SegmentTree([1, 2, 3, 4, 5])
+    print(f"SegmentTree sum [1,3]: {st.query(1, 3)}")
+
+    print("\n17. STRING SEARCH (KMP/RK)")
+    print("-" * 60)
+    print(f"KMP search 'abc' in 'zzabczz': {kmp_search('zzabczz', 'abc')}")
+    print(f"Rabin-Karp search 'abc' in 'zzabczz': {rabin_karp('zzabczz', 'abc')}")
     
     print("\n" + "=" * 60)
-    print("Ready for Part 2! Prompt to continue...")
+    print("Cheat sheet loaded.")
     print("=" * 60)
