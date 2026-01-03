@@ -5,3 +5,4 @@ ipykernel
 matplotlib
 scikit-learn
 seaborn
+plotly
