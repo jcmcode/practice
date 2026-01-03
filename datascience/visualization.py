@@ -29,6 +29,9 @@ CONTENTS:
 12. Animation: FuncAnimation basics for dynamic plots
 13. Seaborn Advanced: count plots, point plots, custom estimators, overlays
 14. Color & Style: colormaps, palettes, themes, colorblind-friendly options
+15. Specialized Visualizations: dendrograms (hierarchical clustering), radar/spider
+    charts (multivariate comparison), waterfall charts (sequential changes), 
+    Sankey diagrams (flow visualization), network graphs (relationships/connections)
 
 USAGE:
 - Each section contains runnable, commented examples
@@ -45,13 +48,32 @@ DESIGN FOR:
 ================================================================================
 """
 
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import plotly.express as px
+# ============================================================================
+# IMPORTS - Core Libraries for Data Visualization
+# ============================================================================
 
-# Set global styles for consistent appearance
+import numpy as np              # Numerical computing: arrays, math operations, random numbers
+import pandas as pd             # Data manipulation: DataFrames, Series, data wrangling
+import matplotlib.pyplot as plt # Core plotting: figures, axes, basic plots (line, scatter, etc.)
+import seaborn as sns           # Statistical visualization: built on Matplotlib, higher-level API
+import plotly.express as px     # Interactive plots: web-based visualizations with hover/zoom
+
+# Optional imports (used in specific sections, imported within functions when needed):
+# - matplotlib.dates: Date formatting for time series x-axes
+# - matplotlib.animation: Creating animated plots (FuncAnimation)
+# - matplotlib.gridspec: Advanced subplot layouts (GridSpec)
+# - mpl_toolkits.mplot3d: 3D plotting (Axes3D)
+# - mpl_toolkits.axes_grid1.inset_locator: Inset axes (plot-in-plot)
+# - scipy.stats: Statistical functions (Q-Q plots, probability distributions)
+# - scipy.cluster.hierarchy: Hierarchical clustering (dendrograms)
+# - networkx: Network/graph visualization
+# - plotly.graph_objects: Low-level Plotly for Sankey diagrams
+
+# ============================================================================
+# GLOBAL STYLE SETTINGS
+# ============================================================================
+
+# Set global styles for consistent appearance across all plots
 plt.style.use('seaborn-v0_8-whitegrid')  # Clean grid background
 sns.set_theme(style='whitegrid', palette='deep')  # Seaborn defaults
 
@@ -1123,6 +1145,274 @@ def seaborn_advanced():
 # - Temporary context: with sns.axes_style('whitegrid'): ...
 
 # ============================================================================
+# 15. SPECIALIZED VISUALIZATIONS
+# ============================================================================
+# Advanced plot types for specific use cases: hierarchical data, multivariate
+# comparisons, flow diagrams, and network relationships.
+
+def dendrogram_clustering():
+    """Dendrogram for hierarchical clustering - shows how data points group"""
+    from scipy.cluster.hierarchy import dendrogram, linkage
+    
+    # Create sample data for clustering (2D points)
+    np.random.seed(42)
+    # Generate 3 clusters of points
+    cluster1 = np.random.randn(10, 2) + np.array([0, 0])
+    cluster2 = np.random.randn(10, 2) + np.array([5, 5])
+    cluster3 = np.random.randn(10, 2) + np.array([0, 5])
+    data = np.vstack([cluster1, cluster2, cluster3])
+    
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Plot 1: The original data points
+    axes[0].scatter(data[:, 0], data[:, 1], alpha=0.6, s=100)
+    axes[0].set_title('Original Data Points')
+    axes[0].set_xlabel('Feature 1')
+    axes[0].set_ylabel('Feature 2')
+    
+    # Plot 2: Hierarchical clustering dendrogram
+    # Compute linkage matrix (how to merge clusters)
+    linkage_matrix = linkage(data, method='ward')  # Ward minimizes variance
+    
+    # Create dendrogram
+    dendrogram(linkage_matrix,      # Linkage matrix from above
+               ax=axes[1],          # Plot on second subplot
+               orientation='top',   # Tree grows downward
+               distance_sort='ascending',  # Sort by distance
+               show_leaf_counts=True)      # Show number of items in each leaf
+    
+    axes[1].set_title('Hierarchical Clustering Dendrogram')
+    axes[1].set_xlabel('Data Point Index (or Cluster)')
+    axes[1].set_ylabel('Distance (Height)')
+    
+    # Note: Height shows distance where clusters merge
+    # Can "cut" tree at any height to get desired number of clusters
+    
+    fig.tight_layout()
+    # plt.show()
+
+def radar_chart():
+    """Radar/Spider chart for multivariate comparison on same scale"""
+    # Example: Compare products/items across multiple attributes
+    
+    # Sample data: 3 products rated on 5 attributes (scale 0-10)
+    categories = ['Quality', 'Price', 'Support', 'Features', 'Speed']
+    n_cats = len(categories)
+    
+    # Ratings for each product
+    product_a = [8, 6, 7, 9, 8]  # Product A scores
+    product_b = [6, 9, 5, 7, 6]  # Product B scores
+    product_c = [7, 7, 9, 6, 7]  # Product C scores
+    
+    # Compute angle for each axis (evenly spaced around circle)
+    angles = np.linspace(0, 2 * np.pi, n_cats, endpoint=False).tolist()
+    
+    # Close the plot by appending first value to end
+    product_a += [product_a[0]]
+    product_b += [product_b[0]]
+    product_c += [product_c[0]]
+    angles += [angles[0]]
+    
+    # Create polar plot
+    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(projection='polar'))
+    
+    # Plot each product as a line on radar chart
+    ax.plot(angles, product_a, 'o-', linewidth=2, label='Product A', color='blue')
+    ax.fill(angles, product_a, alpha=0.15, color='blue')  # Fill area
+    
+    ax.plot(angles, product_b, 's-', linewidth=2, label='Product B', color='red')
+    ax.fill(angles, product_b, alpha=0.15, color='red')
+    
+    ax.plot(angles, product_c, '^-', linewidth=2, label='Product C', color='green')
+    ax.fill(angles, product_c, alpha=0.15, color='green')
+    
+    # Set category labels at each spoke
+    ax.set_xticks(angles[:-1])  # Exclude duplicate first angle
+    ax.set_xticklabels(categories)
+    
+    # Set radial limits and labels
+    ax.set_ylim(0, 10)
+    ax.set_yticks([2, 4, 6, 8, 10])
+    ax.set_yticklabels(['2', '4', '6', '8', '10'], color='gray', size=8)
+    
+    ax.set_title('Product Comparison Radar Chart', size=16, y=1.08)
+    ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
+    ax.grid(True)
+    
+    fig.tight_layout()
+    # plt.show()
+
+def waterfall_chart():
+    """Waterfall chart shows cumulative effect of sequential changes"""
+    # Use case: financial analysis, showing how components add up to total
+    
+    # Example: Revenue breakdown
+    categories = ['Starting\nRevenue', 'Product\nSales', 'Services', 
+                  'Costs', 'Taxes', 'Final\nProfit']
+    values = [100, 50, 30, -60, -20, 0]  # Changes (positive/negative)
+    
+    # Calculate cumulative values and bar positions
+    cumulative = [0]  # Starting position
+    for val in values[:-1]:  # All except final (which we'll calculate)
+        cumulative.append(cumulative[-1] + val)
+    
+    # Final value is last cumulative
+    values[-1] = cumulative[-1]  # Final profit = cumulative total
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Plot bars with different colors for increase/decrease
+    colors = ['blue', 'green', 'green', 'red', 'red', 'blue']
+    
+    # For each bar, plot from previous cumulative to current
+    x_pos = np.arange(len(categories))
+    
+    for i, (cat, val, cum) in enumerate(zip(categories, values, cumulative)):
+        if i == 0:  # Starting value - full bar from 0
+            ax.bar(i, val, color=colors[i], alpha=0.7, width=0.6)
+        elif i == len(categories) - 1:  # Final value - full bar from 0
+            ax.bar(i, val, color=colors[i], alpha=0.7, width=0.6)
+        else:  # Intermediate - floating bar showing change
+            bar_bottom = cum  # Start from previous cumulative
+            ax.bar(i, val, bottom=bar_bottom, color=colors[i], alpha=0.7, width=0.6)
+            # Draw connector line to next bar
+            if i < len(categories) - 1:
+                ax.plot([i + 0.3, i + 0.7], [cum + val, cum + val], 
+                       'k--', linewidth=1, alpha=0.5)
+        
+        # Add value labels on bars
+        if i < len(categories) - 1:
+            label_y = cum + val / 2 if val > 0 else cum + val / 2
+            ax.text(i, label_y, f'{val:+.0f}', ha='center', va='center', 
+                   fontweight='bold', fontsize=10)
+        else:
+            ax.text(i, val / 2, f'{val:.0f}', ha='center', va='center', 
+                   fontweight='bold', fontsize=10)
+    
+    # Formatting
+    ax.set_xticks(x_pos)
+    ax.set_xticklabels(categories)
+    ax.set_ylabel('Value ($M)', fontsize=12)
+    ax.set_title('Waterfall Chart - Revenue to Profit Breakdown', fontsize=14)
+    ax.axhline(0, color='black', linewidth=0.8)  # Zero line
+    ax.grid(axis='y', alpha=0.3)
+    
+    fig.tight_layout()
+    # plt.show()
+
+def sankey_diagram():
+    """Sankey diagram shows flow quantities between nodes (requires plotly)"""
+    import plotly.graph_objects as go  # Lower-level Plotly for Sankey
+    
+    # Example: Energy flow from sources to uses
+    # Define nodes (sources and targets)
+    labels = ['Coal', 'Natural Gas', 'Nuclear', 'Renewable',  # Sources (0-3)
+              'Electricity', 'Heat',                            # Intermediate (4-5)
+              'Residential', 'Commercial', 'Industrial']        # End uses (6-8)
+    
+    # Define flows: source index -> target index with value
+    sources = [0, 0, 1, 1, 2, 3, 3, 4, 4, 4, 5, 5, 5]  # From node indices
+    targets = [4, 5, 4, 5, 4, 4, 5, 6, 7, 8, 6, 7, 8]  # To node indices
+    values =  [40, 10, 30, 15, 25, 20, 5, 30, 25, 60, 10, 10, 10]  # Flow amounts
+    
+    # Create Sankey diagram
+    fig = go.Figure(data=[go.Sankey(
+        # Node styling
+        node=dict(
+            pad=15,           # Spacing between nodes
+            thickness=20,     # Node width
+            line=dict(color='black', width=0.5),
+            label=labels,     # Node labels
+            color='lightblue' # Node colors
+        ),
+        # Link (flow) styling
+        link=dict(
+            source=sources,   # Start nodes (by index)
+            target=targets,   # End nodes (by index)
+            value=values,     # Flow magnitude (width of ribbon)
+            color='rgba(0, 150, 255, 0.3)'  # Semi-transparent flow color
+        )
+    )])
+    
+    fig.update_layout(
+        title='Energy Flow Sankey Diagram',
+        font=dict(size=12),
+        height=600
+    )
+    
+    # fig.show()  # Opens in browser
+    return fig
+
+def network_graph():
+    """Network/graph visualization showing nodes and connections (requires networkx)"""
+    try:
+        import networkx as nx  # Graph/network library
+    except ImportError:
+        print("NetworkX not installed. Install with: pip install networkx")
+        return
+    
+    # Create sample network (social network, citation network, etc.)
+    G = nx.Graph()  # Undirected graph
+    
+    # Add nodes (people, papers, websites, etc.)
+    nodes = ['Alice', 'Bob', 'Carol', 'Dave', 'Eve', 'Frank', 'Grace']
+    G.add_nodes_from(nodes)
+    
+    # Add edges (connections/relationships)
+    edges = [
+        ('Alice', 'Bob'), ('Alice', 'Carol'), ('Alice', 'Dave'),
+        ('Bob', 'Carol'), ('Bob', 'Eve'),
+        ('Carol', 'Dave'), ('Carol', 'Frank'),
+        ('Dave', 'Frank'),
+        ('Eve', 'Frank'), ('Eve', 'Grace'),
+        ('Frank', 'Grace')
+    ]
+    G.add_edges_from(edges)
+    
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    
+    # Layout 1: Spring layout (force-directed, nodes repel/attract)
+    pos1 = nx.spring_layout(G, seed=42)  # Seed for reproducibility
+    
+    # Draw network on first subplot
+    nx.draw(G, pos1, ax=axes[0],
+            with_labels=True,          # Show node names
+            node_color='lightblue',    # Node fill color
+            node_size=1000,            # Node size
+            font_size=10,              # Label font size
+            font_weight='bold',        # Label font weight
+            edge_color='gray',         # Connection color
+            width=2,                   # Edge thickness
+            alpha=0.8)                 # Transparency
+    axes[0].set_title('Network Graph - Spring Layout')
+    
+    # Layout 2: Circular layout
+    pos2 = nx.circular_layout(G)
+    
+    # Calculate node sizes based on degree (number of connections)
+    degrees = dict(G.degree())  # Number of connections per node
+    node_sizes = [degrees[node] * 300 for node in G.nodes()]  # Scale by degree
+    
+    nx.draw(G, pos2, ax=axes[1],
+            with_labels=True,
+            node_color=list(degrees.values()),  # Color by degree
+            node_size=node_sizes,               # Size by degree
+            cmap='viridis',                     # Color map
+            font_size=10,
+            font_weight='bold',
+            edge_color='gray',
+            width=2,
+            alpha=0.8)
+    axes[1].set_title('Network Graph - Circular Layout (sized by connections)')
+    
+    fig.tight_layout()
+    # plt.show()
+    
+    # Print network statistics
+    print(f"Network has {G.number_of_nodes()} nodes and {G.number_of_edges()} edges")
+    print(f"Average degree: {sum(degrees.values()) / len(degrees):.2f}")
+
+# ============================================================================
 # MAIN DEMO (lightweight sanity checks)
 # ============================================================================
 
@@ -1145,6 +1435,8 @@ if __name__ == "__main__":
     print(" 11. Advanced layouts (GridSpec, insets, legends)")
     print(" 12. Animation basics")
     print(" 13. Seaborn advanced patterns")
+    print(" 14. Color & style notes")
+    print(" 15. Specialized visualizations (dendrograms, radar, waterfall, Sankey, networks)")
     print("=" * 70)
     
     # Run examples (lightweight checks)
@@ -1164,7 +1456,7 @@ if __name__ == "__main__":
     px_scatter(); px_line(); px_hist(); px_heatmap()
     annotate_example(); ref_lines(); ticks_custom(); log_scale(); save_multiple()
     
-    # New sections
+    # Advanced sections
     timeseries_basic()
     timeseries_area_stacked()
     statistical_regression()
@@ -1181,5 +1473,15 @@ if __name__ == "__main__":
     animation_simple()
     seaborn_advanced()
     
+    # Specialized visualizations
+    dendrogram_clustering()
+    radar_chart()
+    waterfall_chart()
+    sankey_diagram()
+    network_graph()
+    
     print("\nAll visualization examples loaded successfully!")
     print("Explore each function to learn specific patterns.")
+    print("\nNote: Some specialized plots require additional packages:")
+    print("  - NetworkX: pip install networkx")
+    print("  - Plotly for Sankey: pip install plotly (already imported)")
