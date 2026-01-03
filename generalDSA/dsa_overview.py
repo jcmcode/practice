@@ -1506,6 +1506,32 @@ def dijkstra(graph, start):
                 heapq.heappush(pq, (nd, v))
     return dict(dist)
 
+def astar(graph, start, goal, heuristic):
+    """A* search: graph adjacency list with weights, heuristic(node)->estimate to goal"""
+    open_set = [(0, start)]  # (f = g + h, node)
+    g = defaultdict(lambda: float('inf'))
+    g[start] = 0
+    parent = {start: None}
+    while open_set:
+        f, u = heapq.heappop(open_set)
+        if u == goal:
+            # reconstruct path
+            path = []
+            cur = goal
+            while cur is not None:
+                path.append(cur)
+                cur = parent[cur]
+            return list(reversed(path)), g[goal]
+        if f > g[u] + heuristic(u):
+            continue  # stale
+        for v, w in graph.get(u, []):
+            ng = g[u] + w
+            if ng < g[v]:
+                g[v] = ng
+                parent[v] = u
+                heapq.heappush(open_set, (ng + heuristic(v), v))
+    return [], float('inf')
+
 class UnionFind:
     """Disjoint Set Union (Union-Find) with path compression + union by rank"""
     def __init__(self, n):
@@ -2122,6 +2148,11 @@ if __name__ == "__main__":
     order, dist = bfs(g, 0)
     print(f"BFS order: {order}")
     print(f"Distances: {dist}")
+    # A* example on weighted graph with zero heuristic (falls back to Dijkstra)
+    g_w = build_graph([(0, 1, 2), (1, 2, 2), (0, 2, 5), (2, 3, 1)], directed=False, weighted=True)
+    zero_h = lambda _: 0
+    path, cost = astar(g_w, 0, 3, zero_h)
+    print(f"A* path 0->3: {path}, cost: {cost}")
 
     print("\n12. TRIES")
     print("-" * 60)
