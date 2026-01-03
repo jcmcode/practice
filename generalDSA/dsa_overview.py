@@ -1498,7 +1498,7 @@ def dijkstra(graph, start):
     while pq:
         d, u = heapq.heappop(pq)
         if d != dist[u]:
-            continue  # stale entry
+            continue  # Skip stale entry that is worse than known distance
         for v, w in graph.get(u, []):
             nd = d + w
             if nd < dist[v]:
@@ -1523,7 +1523,7 @@ def astar(graph, start, goal, heuristic):
                 cur = parent[cur]
             return list(reversed(path)), g[goal]
         if f > g[u] + heuristic(u):
-            continue  # stale
+            continue  # Skip stale node whose f no longer matches best g+h
         for v, w in graph.get(u, []):
             ng = g[u] + w
             if ng < g[v]:
@@ -1742,7 +1742,7 @@ def lis_length(nums):
     """Longest Increasing Subsequence in O(n log n)"""
     tails = []
     for x in nums:
-        idx = lower_bound(tails, x)
+        idx = lower_bound(tails, x)  # Smallest tail >= x
         if idx == len(tails):
             tails.append(x)
         else:
@@ -1754,7 +1754,7 @@ def knapsack_01(weights, values, capacity):
     dp = [0] * (capacity + 1)
     for i in range(n):
         w, v = weights[i], values[i]
-        for c in range(capacity, w - 1, -1):
+        for c in range(capacity, w - 1, -1):  # Go backwards to avoid reuse
             dp[c] = max(dp[c], dp[c - w] + v)
     return dp[capacity]
 
@@ -1778,10 +1778,10 @@ def permutations(nums):
         for i, val in enumerate(nums):
             if used[i]:
                 continue
-            used[i] = True
+            used[i] = True  # choose
             path.append(val)
             dfs()
-            path.pop()
+            path.pop()      # un-choose
             used[i] = False
     dfs()
     return res
@@ -1793,9 +1793,9 @@ def subsets(nums):
         if i == len(nums):
             res.append(path[:])
             return
-        dfs(i + 1)
+        dfs(i + 1)         # skip
         path.append(nums[i])
-        dfs(i + 1)
+        dfs(i + 1)         # take
         path.pop()
     dfs(0)
     return res
@@ -1830,7 +1830,7 @@ def longest_substring_without_repeating(s):
     best = 0
     for right, ch in enumerate(s):
         if ch in seen and seen[ch] >= left:
-            left = seen[ch] + 1
+            left = seen[ch] + 1  # shrink window past duplicate
         seen[ch] = right
         best = max(best, right - left + 1)
     return best
@@ -1970,13 +1970,13 @@ class FenwickTree:
         self.n = n
         self.bit = [0] * (n + 1)
     def update(self, idx, delta):
-        i = idx + 1
+        i = idx + 1  # internal index is 1-based
         while i <= self.n:
             self.bit[i] += delta
             i += i & -i
     def query(self, idx):
         s = 0
-        i = idx + 1
+        i = idx + 1  # prefix sum inclusive
         while i > 0:
             s += self.bit[i]
             i -= i & -i
@@ -2030,13 +2030,13 @@ def kmp_search(text, pattern):
     j = 0
     for i in range(1, len(pattern)):
         while j > 0 and pattern[i] != pattern[j]:
-            j = lps[j - 1]
+            j = lps[j - 1]  # fall back in pattern
         if pattern[i] == pattern[j]:
-            j += 1; lps[i] = j
+            j += 1; lps[i] = j  # extend current prefix
     j = 0
     for i, ch in enumerate(text):
         while j > 0 and ch != pattern[j]:
-            j = lps[j - 1]
+            j = lps[j - 1]  # fall back
         if ch == pattern[j]:
             j += 1
             if j == len(pattern):
@@ -2049,7 +2049,7 @@ def rabin_karp(text, pattern, base=256, mod=10**9 + 7):
         return 0
     if m > n:
         return -1
-    h = pow(base, m - 1, mod)
+    h = pow(base, m - 1, mod)  # base^(m-1) mod
     p_hash = t_hash = 0
     for i in range(m):
         p_hash = (p_hash * base + ord(pattern[i])) % mod
@@ -2058,8 +2058,8 @@ def rabin_karp(text, pattern, base=256, mod=10**9 + 7):
         if p_hash == t_hash and text[i:i+m] == pattern:
             return i
         if i < n - m:
-            t_hash = (t_hash - ord(text[i]) * h) % mod
-            t_hash = (t_hash * base + ord(text[i + m])) % mod
+            t_hash = (t_hash - ord(text[i]) * h) % mod  # remove leading char
+            t_hash = (t_hash * base + ord(text[i + m])) % mod  # add trailing char
             t_hash %= mod
     return -1
 
