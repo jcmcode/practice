@@ -13,10 +13,21 @@ CONTENTS (PART 1):
 3) Functions: defs, lambdas, args/kwargs, decorators, closures
 4) Error Handling: try/except/else/finally, custom exceptions, context managers
 5) Iteration Tools: iterators, generators, itertools essentials
+CONTENTS (PART 1 + PART 2 + PART 3):
+1) Language Basics: syntax, types, numbers, strings
+2) Collections: lists, tuples, sets, dicts, comprehensions
+3) Functions: defs, lambdas, args/kwargs, decorators, closures
+4) Error Handling: try/except/else/finally, custom exceptions, context managers
+5) Iteration Tools: iterators, generators, itertools essentials
+6) OOP Essentials: classes, instances, attributes, class/static methods
+7) Inheritance & Composition: super(), mixins, composition vs inheritance
+8) Dataclasses: auto-__init__, defaults, slots, immutability (frozen)
+9) Typing & Protocols: type hints, TypedDict, Protocol, Generics
+10) Files & Paths: pathlib, reading/writing text & binary
+11) CSV & JSON: csv module, json module, newline handling
+12) Logging Basics: logging setup, levels, handlers
 
 Planned for next parts (when you prompt):
-- Part 2: OOP, dataclasses, typing, protocols
-- Part 3: Files, paths, CSV/JSON, context managers, logging
 - Part 4: Concurrency overview (threading/multiprocessing/asyncio) quick hits
 - Part 5: Testing (unittest/pytest), packaging, venvs, CLI tooling
 ================================================================================
@@ -244,6 +255,181 @@ def itertools_essentials():
 
 
 # ============================================================================
+# 6. OOP ESSENTIALS
+# ============================================================================
+
+def oop_basics():
+    """Classes, instances, methods, class attrs, static/class methods"""
+
+    class Animal:
+        # Class attribute (shared)
+        kingdom = "animalia"
+
+        def __init__(self, name, species):
+            self.name = name          # Instance attribute
+            self.species = species
+
+        def speak(self):
+            # Instance method: first arg is self
+            return f"{self.name} makes a sound"
+
+        @classmethod
+        def kingdom_name(cls):
+            # Class method: first arg is class (cls)
+            return cls.kingdom
+
+        @staticmethod
+        def is_alive():
+            # Static method: no auto self/cls, utility-like
+            return True
+
+    dog = Animal("Fido", "canine")
+    cat = Animal("Whiskers", "feline")
+
+    print(dog.speak())
+    print(cat.speak())
+    print(Animal.kingdom_name())
+    print(Animal.is_alive())
+
+
+# ============================================================================
+# 7. INHERITANCE & COMPOSITION
+# ============================================================================
+
+def inheritance_and_composition():
+    """super(), mixins, composition vs inheritance"""
+
+    class Vehicle:
+        def __init__(self, make):
+            self.make = make
+
+        def move(self):
+            return "Moving"
+
+    class Car(Vehicle):
+        def __init__(self, make, doors):
+            super().__init__(make)  # call parent init
+            self.doors = doors
+
+        def move(self):
+            base = super().move()
+            return f"{base} on the road"
+
+    # Mixin example (adds behavior but not a full type on its own)
+    class ElectricMixin:
+        def charge(self):
+            return "Charging battery"
+
+    class ElectricCar(ElectricMixin, Car):
+        pass
+
+    # Composition example: has-a relationship
+    class Engine:
+        def start(self):
+            return "Engine started"
+
+    class Boat:
+        def __init__(self):
+            self.engine = Engine()  # composed object
+
+        def start(self):
+            return self.engine.start()
+
+    car = ElectricCar("Tesla", 4)
+    boat = Boat()
+
+    print(car.move(), car.charge())
+    print(boat.start())
+
+
+# ============================================================================
+# 8. DATA CLASSES
+# ============================================================================
+
+def dataclasses_examples():
+    """Auto-__init__, defaults, ordering, immutability"""
+
+    @dataclass
+    class Point:
+        x: float
+        y: float
+
+    @dataclass(order=True)
+    class Task:
+        priority: int
+        description: str
+        done: bool = False  # default value
+
+    @dataclass(frozen=True)
+    class Config:
+        debug: bool
+        version: str = "1.0"
+
+    @dataclass(slots=True)
+    class User:
+        name: str
+        email: str
+
+    p = Point(1, 2)
+    t1 = Task(1, "write code")
+    t2 = Task(2, "review PR", done=True)
+    cfg = Config(debug=False)
+    usr = User("Ada", "ada@example.com")
+
+    print(p, t1, t2)
+    print(cfg, cfg.version)
+    print(usr.name)
+
+
+# ============================================================================
+# 9. TYPING & PROTOCOLS
+# ============================================================================
+
+def typing_and_protocols():
+    """Type hints, TypedDict, Protocol, Generics"""
+    from typing import TypedDict, Protocol, List, Dict, Optional, Iterable, TypeVar, Generic
+
+    class UserDict(TypedDict):
+        id: int
+        name: str
+        email: str
+        active: bool
+
+    # Protocol: structural typing (duck typing with types)
+    class Greeter(Protocol):
+        def greet(self, name: str) -> str:
+            ...
+
+    class FriendlyBot:
+        def greet(self, name: str) -> str:
+            return f"Hello {name}!"
+
+    # Generic container example
+    T = TypeVar("T")
+
+    class Box(Generic(T)):
+        def __init__(self, value: T):
+            self.value = value
+
+        def get(self) -> T:
+            return self.value
+
+    def greet_all(greeter: Greeter, names: Iterable[str]) -> List[str]:
+        return [greeter.greet(n) for n in names]
+
+    user: UserDict = {"id": 1, "name": "Ada", "email": "ada@ex.com", "active": True}
+    bot = FriendlyBot()
+    box_int = Box(123)
+    box_str = Box("hello")
+
+    greetings = greet_all(bot, ["Bob", "Carol"])
+
+    print(user)
+    print(box_int.get(), box_str.get())
+    print(greetings)
+
+
+# ============================================================================
 # MAIN DEMO (Part 1)
 # ============================================================================
 if __name__ == "__main__":
@@ -272,6 +458,18 @@ if __name__ == "__main__":
     # 5. Iteration Tools
     # iterators_and_generators()
     # itertools_essentials()
+
+    # 6. OOP Essentials
+    # oop_basics()
+
+    # 7. Inheritance & Composition
+    # inheritance_and_composition()
+
+    # 8. Dataclasses
+    # dataclasses_examples()
+
+    # 9. Typing & Protocols
+    # typing_and_protocols()
 
     print("\nNext prompt can add Part 2 (OOP, dataclasses, typing), Part 3 (files/logging), etc.")
     print("=" * 70)
