@@ -430,6 +430,117 @@ def typing_and_protocols():
 
 
 # ============================================================================
+# 10. FILES & PATHS (pathlib)
+# ============================================================================
+
+def files_and_paths():
+    """Use pathlib for clean, cross-platform file handling"""
+    from pathlib import Path
+
+    base = Path(__file__).parent  # directory containing this file
+    data_dir = base / "data"      # construct paths with /
+    sample_file = data_dir / "sample.txt"
+
+    # Ensure directory exists
+    data_dir.mkdir(exist_ok=True)
+
+    # Write text (overwrites)
+    sample_file.write_text("hello world\nsecond line", encoding="utf-8")
+
+    # Read text
+    content = sample_file.read_text(encoding="utf-8")
+
+    # Append text
+    with sample_file.open("a", encoding="utf-8") as f:
+        f.write("\nappended line")
+
+    # Binary write/read
+    bin_file = data_dir / "bytes.bin"
+    bin_file.write_bytes(b"\x00\x01\x02")
+    raw = bin_file.read_bytes()
+
+    # Listing directory
+    files = [p.name for p in data_dir.iterdir() if p.is_file()]
+
+    print("Content:\n", content)
+    print("Raw bytes:", raw)
+    print("Files in data/:", files)
+
+
+# ============================================================================
+# 11. CSV & JSON
+# ============================================================================
+
+def csv_and_json_examples():
+    """CSV read/write, JSON read/write"""
+    import csv, json
+    from pathlib import Path
+
+    base = Path(__file__).parent
+    data_dir = base / "data"
+    data_dir.mkdir(exist_ok=True)
+
+    # Sample data
+    rows = [
+        {"id": 1, "name": "Ada", "lang": "Python"},
+        {"id": 2, "name": "Linus", "lang": "C"},
+    ]
+
+    # --- CSV write ---
+    csv_path = data_dir / "people.csv"
+    with csv_path.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["id", "name", "lang"])
+        writer.writeheader()
+        writer.writerows(rows)
+
+    # --- CSV read ---
+    with csv_path.open("r", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        loaded_csv = list(reader)
+
+    # --- JSON write ---
+    json_path = data_dir / "people.json"
+    json_path.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+
+    # --- JSON read ---
+    loaded_json = json.loads(json_path.read_text(encoding="utf-8"))
+
+    print("CSV loaded:", loaded_csv)
+    print("JSON loaded:", loaded_json)
+
+
+# ============================================================================
+# 12. LOGGING BASICS
+# ============================================================================
+
+def logging_basics():
+    """Set up basic logging with levels and handlers"""
+    import logging
+    from pathlib import Path
+
+    log_path = Path(__file__).parent / "data" / "app.log"
+    log_path.parent.mkdir(exist_ok=True)
+
+    # BasicConfig should be called once at startup
+    logging.basicConfig(
+        level=logging.INFO,  # DEBUG < INFO < WARNING < ERROR < CRITICAL
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        handlers=[
+            logging.FileHandler(log_path, encoding="utf-8"),
+            logging.StreamHandler(),
+        ],
+    )
+
+    logger = logging.getLogger("demo")
+    logger.debug("This is debug (won't show at INFO level)")
+    logger.info("Informational message")
+    logger.warning("Something to be aware of")
+    logger.error("An error occurred")
+
+    print(f"Logs written to {log_path}")
+
+
+# ============================================================================
 # MAIN DEMO (Part 1)
 # ============================================================================
 if __name__ == "__main__":
@@ -471,5 +582,14 @@ if __name__ == "__main__":
     # 9. Typing & Protocols
     # typing_and_protocols()
 
-    print("\nNext prompt can add Part 2 (OOP, dataclasses, typing), Part 3 (files/logging), etc.")
+    # 10. Files & Paths
+    # files_and_paths()
+
+    # 11. CSV & JSON
+    # csv_and_json_examples()
+
+    # 12. Logging Basics
+    # logging_basics()
+
+    print("\nNext prompt can add Part 4 (concurrency quick hits) and Part 5 (testing/packaging).")
     print("=" * 70)
