@@ -13,7 +13,7 @@ CONTENTS (PART 1):
 3) Functions: defs, lambdas, args/kwargs, decorators, closures
 4) Error Handling: try/except/else/finally, custom exceptions, context managers
 5) Iteration Tools: iterators, generators, itertools essentials
-CONTENTS (PART 1 + PART 2 + PART 3 + PART 4):
+CONTENTS (PART 1 + PART 2 + PART 3 + PART 4 + PART 5):
 1) Language Basics: syntax, types, numbers, strings
 2) Collections: lists, tuples, sets, dicts, comprehensions
 3) Functions: defs, lambdas, args/kwargs, decorators, closures
@@ -27,9 +27,11 @@ CONTENTS (PART 1 + PART 2 + PART 3 + PART 4):
 11) CSV & JSON: csv module, json module, newline handling
 12) Logging Basics: logging setup, levels, handlers
 13) Concurrency Quick Hits: threading, ThreadPoolExecutor, multiprocessing, asyncio
+14) Testing: unittest basics, pytest-style examples, fixtures mindset
+15) Packaging & Environments: venv basics, minimal package layout, CLI entrypoints
 
 Planned for next parts (when you prompt):
-- Part 5: Testing (unittest/pytest), packaging, venvs, CLI tooling
+- (Completed through Part 5)
 ================================================================================
 """
 
@@ -610,6 +612,112 @@ def run_asyncio_quick_demo():
 
 
 # ============================================================================
+# 14. TESTING (unittest + pytest style)
+# ============================================================================
+
+def testing_unittest_basics():
+    """Demonstrate a small unittest TestCase"""
+    import unittest
+
+    class MathTests(unittest.TestCase):
+        def test_add(self):
+            self.assertEqual(2 + 2, 4)
+
+        def test_raises(self):
+            with self.assertRaises(ZeroDivisionError):
+                _ = 1 / 0
+
+    suite = unittest.defaultTestLoader.loadTestsFromTestCase(MathTests)
+    runner = unittest.TextTestRunner(verbosity=2)
+    runner.run(suite)
+
+
+def testing_pytest_style_examples():
+    """Pytest-like patterns (no actual pytest dependency needed to read)"""
+
+    def add(a, b):
+        return a + b
+
+    def test_add_simple():
+        assert add(2, 3) == 5
+
+    def test_division_by_zero():
+        try:
+            _ = 1 / 0
+        except ZeroDivisionError:
+            pass
+        else:
+            raise AssertionError("Expected ZeroDivisionError")
+
+    # Run "tests" manually here (in pytest they are auto-discovered)
+    test_add_simple()
+    test_division_by_zero()
+    print("Pytest-style checks passed (manual run)")
+
+
+# ============================================================================
+# 15. PACKAGING & ENVIRONMENTS
+# ============================================================================
+
+def packaging_and_venv_notes():
+    """Minimal notes on venv, package layout, CLI entrypoints"""
+
+    notes = r"""
+VENV (BUILT-IN):
+----------------
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -U pip
+
+MINIMAL PACKAGE LAYOUT:
+-----------------------
+project/
+  pyproject.toml        # build config (recommended)
+  README.md
+  src/
+    mypkg/
+      __init__.py
+      core.py
+  tests/
+    test_core.py
+
+PYPROJECT.TOML (POETRY/PEP 621 STYLE EXAMPLE):
+---------------------------------------------
+[project]
+name = "mypkg"
+version = "0.1.0"
+description = "My sample package"
+requires-python = ">=3.10"
+dependencies = [
+  "requests>=2.31",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+CLI ENTRYPOINT (SETUPTOOLS-STYLE):
+----------------------------------
+In pyproject.toml under [project.scripts]:
+mycli = "mypkg.core:main"
+
+Then implement in src/mypkg/core.py:
+def main():
+    print("Hello from CLI")
+
+INSTALL LOCALLY (editable):
+---------------------------
+pip install -e .
+
+RUN TESTS:
+----------
+pytest
+
+"""
+    print(notes)
+
+
+# ============================================================================
 # MAIN DEMO (Part 1)
 # ============================================================================
 if __name__ == "__main__":
@@ -665,6 +773,13 @@ if __name__ == "__main__":
     # threadpool_quick_demo()
     # multiprocessing_quick_demo()
     # run_asyncio_quick_demo()
+    
+    # 14. Testing
+    # testing_unittest_basics()
+    # testing_pytest_style_examples()
+    
+    # 15. Packaging & Environments
+    # packaging_and_venv_notes()
 
-    print("\nNext prompt can add Part 5 (testing/packaging/venvs/CLI).")
+    print("\nParts 1-5 ready. Uncomment a section above to run its demo.")
     print("=" * 70)
