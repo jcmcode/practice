@@ -13,7 +13,7 @@ CONTENTS (PART 1):
 3) Functions: defs, lambdas, args/kwargs, decorators, closures
 4) Error Handling: try/except/else/finally, custom exceptions, context managers
 5) Iteration Tools: iterators, generators, itertools essentials
-CONTENTS (PART 1 + PART 2 + PART 3):
+CONTENTS (PART 1 + PART 2 + PART 3 + PART 4):
 1) Language Basics: syntax, types, numbers, strings
 2) Collections: lists, tuples, sets, dicts, comprehensions
 3) Functions: defs, lambdas, args/kwargs, decorators, closures
@@ -26,9 +26,9 @@ CONTENTS (PART 1 + PART 2 + PART 3):
 10) Files & Paths: pathlib, reading/writing text & binary
 11) CSV & JSON: csv module, json module, newline handling
 12) Logging Basics: logging setup, levels, handlers
+13) Concurrency Quick Hits: threading, ThreadPoolExecutor, multiprocessing, asyncio
 
 Planned for next parts (when you prompt):
-- Part 4: Concurrency overview (threading/multiprocessing/asyncio) quick hits
 - Part 5: Testing (unittest/pytest), packaging, venvs, CLI tooling
 ================================================================================
 """
@@ -541,6 +541,75 @@ def logging_basics():
 
 
 # ============================================================================
+# 13. CONCURRENCY QUICK HITS (threading / multiprocessing / asyncio)
+# ============================================================================
+
+def threading_quick_demo():
+    """Threading for I/O-bound tasks (concurrent but not parallel CPU)"""
+    import threading, time
+
+    def io_task(name, duration):
+        print(f"{name} start")
+        time.sleep(duration)  # simulate I/O wait
+        print(f"{name} done")
+
+    t1 = threading.Thread(target=io_task, args=("T1", 1.0))
+    t2 = threading.Thread(target=io_task, args=("T2", 1.0))
+
+    t1.start(); t2.start()
+    t1.join(); t2.join()
+    print("Threads finished")
+
+
+def threadpool_quick_demo():
+    """ThreadPoolExecutor for simple parallel I/O tasks"""
+    import concurrent.futures, time
+
+    def fetch(n):
+        time.sleep(0.5)
+        return f"result-{n}"
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+        for result in ex.map(fetch, range(5)):
+            print(result)
+
+
+def multiprocessing_quick_demo():
+    """Multiprocessing for CPU-bound tasks (true parallelism)"""
+    import multiprocessing, math
+
+    def cpu_task(n):
+        return sum(int(math.sqrt(i)) for i in range(n))
+
+    with multiprocessing.Pool(processes=4) as pool:
+        results = pool.map(cpu_task, [200_000, 200_000, 200_000, 200_000])
+    print("Multiprocessing results:", results)
+
+
+async def asyncio_quick_demo():
+    """Asyncio for many concurrent I/O tasks in one thread"""
+    import asyncio
+
+    async def io_op(name, delay):
+        print(f"{name} start")
+        await asyncio.sleep(delay)
+        print(f"{name} done")
+        return name
+
+    results = await asyncio.gather(
+        io_op("A", 1.0),
+        io_op("B", 0.5),
+        io_op("C", 0.2),
+    )
+    print("Asyncio results:", results)
+
+
+def run_asyncio_quick_demo():
+    import asyncio
+    asyncio.run(asyncio_quick_demo())
+
+
+# ============================================================================
 # MAIN DEMO (Part 1)
 # ============================================================================
 if __name__ == "__main__":
@@ -591,5 +660,11 @@ if __name__ == "__main__":
     # 12. Logging Basics
     # logging_basics()
 
-    print("\nNext prompt can add Part 4 (concurrency quick hits) and Part 5 (testing/packaging).")
+    # 13. Concurrency Quick Hits
+    # threading_quick_demo()
+    # threadpool_quick_demo()
+    # multiprocessing_quick_demo()
+    # run_asyncio_quick_demo()
+
+    print("\nNext prompt can add Part 5 (testing/packaging/venvs/CLI).")
     print("=" * 70)
