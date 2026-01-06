@@ -39,9 +39,18 @@ CONTENTS (PART 1 + PART 2 + PART 3 + PART 4 + PART 5 + EXTRAS):
 23) Profiling & debugging (timeit, cProfile, breakpoint)
 24) Asyncio advanced patterns (tasks, semaphore, cancellation)
 25) Testing extras (unittest.mock, parametrization mindset)
+26) Subprocess basics (run, capture, timeout)
+27) Path/glob patterns (pathlib.rglob, fnmatch)
+28) Serialization variants (pickle caution, tomllib, yaml note)
+29) Caching with functools.lru_cache
+30) Dataclass vs validation note (pydantic if available)
+31) NumPy/pandas quick hits
+32) Security hygiene (secrets, hashlib, hmac)
+33) CLI ergonomics (rich/typer pointers)
+34) Packaging polish (build/release/pipx)
 
 Planned for next parts (when you prompt):
-- (Completed through 25 sections)
+- (Completed through 34 sections)
 ================================================================================
 """
 
@@ -993,6 +1002,219 @@ def testing_extras_mock_and_param():
 
 
 # ============================================================================
+# 26. SUBPROCESS BASICS
+# ============================================================================
+
+def subprocess_basics():
+    """subprocess.run with capture and timeout."""
+    import subprocess
+
+    result = subprocess.run([
+        "echo",
+        "hello subprocess",
+    ], capture_output=True, text=True, check=True)
+    print("stdout:", result.stdout.strip())
+
+    try:
+        subprocess.run(["sleep", "2"], timeout=0.5)
+    except subprocess.TimeoutExpired:
+        print("sleep timed out (as expected)")
+
+
+# ============================================================================
+# 27. PATH/GLOB PATTERNS
+# ============================================================================
+
+def path_and_glob_patterns():
+    """pathlib.rglob and fnmatch for pattern matching."""
+    from pathlib import Path
+    import fnmatch
+
+    base = Path(__file__).parent
+    py_files = list(base.rglob("*.py"))[:5]
+    print("First few .py files:", [p.name for p in py_files])
+
+    names = ["data.csv", "image.png", "notes.txt", "script.py"]
+    txts = [n for n in names if fnmatch.fnmatch(n, "*.txt")]
+    print("fnmatch *.txt:", txts)
+
+
+# ============================================================================
+# 28. SERIALIZATION VARIANTS
+# ============================================================================
+
+def serialization_variants():
+    """pickle caution, tomllib read, yaml note."""
+    import pickle
+    import tomllib
+
+    obj = {"a": 1, "b": [1, 2, 3]}
+    blob = pickle.dumps(obj)
+    restored = pickle.loads(blob)
+    print("pickle restored:", restored)
+    print("Safety note: never load pickle from untrusted sources.")
+
+    toml_data = tomllib.loads("""
+[tool.demo]
+name = "sample"
+enabled = true
+""")
+    print("tomllib parsed:", toml_data)
+
+    try:
+        import yaml  # type: ignore
+    except Exception:
+        yaml = None
+    if yaml:
+        sample_yaml = "key: value\nlist:\n  - 1\n  - 2"
+        print("yaml parsed:", yaml.safe_load(sample_yaml))
+    else:
+        print("PyYAML not installed; pip install pyyaml if needed")
+
+
+# ============================================================================
+# 29. CACHING WITH lru_cache
+# ============================================================================
+
+def caching_with_lru_cache():
+    """Memoize expensive calls with functools.lru_cache."""
+    import functools, time
+
+    @functools.lru_cache(maxsize=128)
+    def fib(n: int) -> int:
+        if n < 2:
+            return n
+        return fib(n - 1) + fib(n - 2)
+
+    start = time.perf_counter()
+    print("fib(30)=", fib(30))
+    print("fib cache size:", fib.cache_info())
+    elapsed = time.perf_counter() - start
+    print(f"Elapsed: {elapsed:.6f}s")
+
+
+# ============================================================================
+# 30. DATACLASS VS VALIDATION (pydantic if available)
+# ============================================================================
+
+def dataclass_vs_validation():
+    """Contrast plain dataclass with optional pydantic model."""
+    from dataclasses import dataclass
+
+    @dataclass
+    class User:
+        id: int
+        email: str
+        active: bool = True
+
+    user = User(1, "ada@example.com")
+    print("Dataclass user:", user)
+    print("Note: dataclasses do not enforce types at runtime.")
+
+    try:
+        from pydantic import BaseModel
+    except Exception:
+        BaseModel = None
+
+    if BaseModel:
+        class UserModel(BaseModel):
+            id: int
+            email: str
+            active: bool = True
+
+        validated = UserModel(id="1", email="ada@example.com")
+        print("Pydantic user:", validated)
+    else:
+        print("pydantic not installed; pip install pydantic to enable runtime validation")
+
+
+# ============================================================================
+# 31. NUMPY/PANDAS QUICK HITS
+# ============================================================================
+
+def numpy_pandas_quick_hits():
+    """Tiny array and DataFrame examples; degrade gracefully if missing."""
+    try:
+        import numpy as np
+    except Exception:
+        np = None
+    try:
+        import pandas as pd
+    except Exception:
+        pd = None
+
+    if np:
+        arr = np.array([1, 2, 3])
+        print("NumPy array:", arr, "squared:", arr ** 2)
+    else:
+        print("NumPy not installed; pip install numpy if needed")
+
+    if pd:
+        df = pd.DataFrame({"name": ["Ada", "Linus"], "lang": ["Python", "C"]})
+        print("DataFrame head:\n", df.head())
+    else:
+        print("pandas not installed; pip install pandas if needed")
+
+
+# ============================================================================
+# 32. SECURITY HYGIENE (secrets, hashlib, hmac)
+# ============================================================================
+
+def security_hygiene():
+    """Use secrets for tokens, hashlib/hmac for integrity."""
+    import secrets, hashlib, hmac
+
+    token = secrets.token_hex(16)
+    print("Random token:", token)
+
+    data = b"important message"
+    digest = hashlib.sha256(data).hexdigest()
+    print("SHA256:", digest)
+
+    key = b"supersecretkey"
+    sig = hmac.new(key, data, hashlib.sha256).hexdigest()
+    print("HMAC-SHA256:", sig)
+    print("Note: avoid random for secrets; use secrets module.")
+
+
+# ============================================================================
+# 33. CLI ERGONOMICS (rich/typer notes)
+# ============================================================================
+
+def cli_ergonomics_notes():
+    """Pointers to rich/typer for nicer CLIs."""
+    print("rich: colorful output, progress bars, markdown rendering.")
+    print("typer: click-based modern CLI builder with type hints.")
+    print("Install with: pip install rich typer")
+
+
+# ============================================================================
+# 34. PACKAGING POLISH
+# ============================================================================
+
+def packaging_polish_notes():
+    """Build/release steps and pipx note."""
+    notes = r"""
+BUILD/RELEASE:
+--------------
+python -m build           # needs `build` package
+python -m twine upload dist/*
+
+VERSIONING:
+-----------
+- SemVer: MAJOR.MINOR.PATCH
+- CalVer: YYYY.MM.DD or similar
+
+CLI DISTRIBUTION:
+-----------------
+- Recommend `pipx install .` for isolated CLI installs
+- In pyproject, expose [project.scripts] entrypoints
+
+"""
+    print(notes)
+
+
+# ============================================================================
 # MAIN DEMO (Part 1)
 # ============================================================================
 if __name__ == "__main__":
@@ -1086,5 +1308,32 @@ if __name__ == "__main__":
     # 25. Testing extras (mock, parametrization)
     # testing_extras_mock_and_param()
 
-    print("\nParts 1-25 ready. Uncomment a section above to run its demo.")
+    # 26. Subprocess basics
+    # subprocess_basics()
+
+    # 27. Path/glob patterns
+    # path_and_glob_patterns()
+
+    # 28. Serialization variants
+    # serialization_variants()
+
+    # 29. Caching with lru_cache
+    # caching_with_lru_cache()
+
+    # 30. Dataclass vs validation
+    # dataclass_vs_validation()
+
+    # 31. NumPy/pandas quick hits
+    # numpy_pandas_quick_hits()
+
+    # 32. Security hygiene
+    # security_hygiene()
+
+    # 33. CLI ergonomics notes
+    # cli_ergonomics_notes()
+
+    # 34. Packaging polish
+    # packaging_polish_notes()
+
+    print("\nParts 1-34 ready. Uncomment a section above to run its demo.")
     print("=" * 70)
