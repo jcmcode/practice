@@ -46,11 +46,18 @@ CONTENTS (PART 1 + PART 2 + PART 3 + PART 4 + PART 5 + EXTRAS):
 30) Dataclass vs validation note (pydantic if available)
 31) NumPy/pandas quick hits
 32) Security hygiene (secrets, hashlib, hmac)
-33) CLI ergonomics (rich/typer pointers)
-34) Packaging polish (build/release/pipx)
+ 33) CLI ergonomics (rich/typer pointers)
+ 34) Packaging polish (build/release/pipx)
+ 35) Property-based testing (hypothesis)
+ 36) Typing extras (Literal, Final, Annotated, runtime_checkable)
+ 37) Sockets & basic networking
+ 38) HTTP client ergonomics (httpx, retries note)
+ 39) Config management (.env layering)
+ 40) Concurrency cautions (GIL guidance)
+ 41) Packaging workflows (poetry/pdm/lockfiles)
 
 Planned for next parts (when you prompt):
-- (Completed through 34 sections)
+- (Completed through 41 sections)
 ================================================================================
 """
 
@@ -1061,15 +1068,167 @@ enabled = true
 """)
     print("tomllib parsed:", toml_data)
 
+
+# ============================================================================
+# 35. PROPERTY-BASED TESTING (hypothesis)
+# ============================================================================
+
+def property_based_testing():
+    """Demonstrate hypothesis if available; otherwise print guidance."""
     try:
-        import yaml  # type: ignore
+        from hypothesis import given, strategies as st  # type: ignore
     except Exception:
-        yaml = None
-    if yaml:
-        sample_yaml = "key: value\nlist:\n  - 1\n  - 2"
-        print("yaml parsed:", yaml.safe_load(sample_yaml))
+        print("hypothesis not installed; pip install hypothesis to run this demo")
+        return
+
+    @given(st.lists(st.integers()))
+    def test_reverse_twice(xs):
+        assert list(reversed(list(reversed(xs)))) == xs
+
+    test_reverse_twice()
+    print("hypothesis property passed for reverse-twice invariant")
+
+
+# ============================================================================
+# 36. TYPING EXTRAS
+# ============================================================================
+
+def typing_extras():
+    """Literal, Final, Annotated, TypedDict total=False, runtime_checkable Protocol."""
+    from typing import Literal, Final, Annotated, TypedDict, Protocol, runtime_checkable
+
+    STATUS: Final = "ok"
+
+    def greet(kind: Literal["hi", "bye"], name: str) -> str:
+        return f"{kind} {name}"
+
+    Age = Annotated[int, "years"]
+    age: Age = 42
+
+    class UserPartial(TypedDict, total=False):
+        id: int
+        email: str
+        active: bool
+
+    @runtime_checkable
+    class SupportsLen(Protocol):
+        def __len__(self) -> int:
+            ...
+
+    sample: UserPartial = {"id": 1, "email": "ada@example.com"}
+    print(greet("hi", "Ada"), STATUS, age, sample)
+    print("Protocol runtime check:", isinstance([1, 2, 3], SupportsLen))
+
+
+# ============================================================================
+# 37. SOCKETS & BASIC NETWORKING
+# ============================================================================
+
+def sockets_basic_networking():
+    """Local socketpair echo demo (no external network required)."""
+    import socket
+
+    if not hasattr(socket, "socketpair"):
+        print("socketpair not available on this platform")
+        return
+
+    s1, s2 = socket.socketpair()
+    try:
+        msg = b"hello socketpair"
+        s1.sendall(msg)
+        received = s2.recv(1024)
+        print("Received:", received)
+    finally:
+        s1.close()
+        s2.close()
+
+
+# ============================================================================
+# 38. HTTP CLIENT ERGONOMICS (httpx)
+# ============================================================================
+
+def http_client_ergonomics():
+    """httpx example with graceful offline handling and retry note."""
+    try:
+        import httpx  # type: ignore
+    except Exception:
+        httpx = None
+
+    if httpx:
+        try:
+            with httpx.Client(timeout=2.0) as client:
+                r = client.get("https://example.com")
+                print("httpx status:", r.status_code)
+                print("Preview:", r.text[:120].replace("\n", " "))
+        except Exception as e:
+            print("httpx fetch failed or offline:", e)
+        print("Retry tip: use httpx.Retry/transport or wrap calls with backoff.")
     else:
-        print("PyYAML not installed; pip install pyyaml if needed")
+        print("httpx not installed; pip install httpx if needed")
+
+
+# ============================================================================
+# 39. CONFIG MANAGEMENT (.env layering)
+# ============================================================================
+
+def config_management_notes():
+    """Show env/default layering; use dotenv if present."""
+    import os
+
+    try:
+        from dotenv import load_dotenv  # type: ignore
+    except Exception:
+        load_dotenv = None
+
+    if load_dotenv:
+        load_dotenv()
+        print("Loaded .env if present")
+    else:
+        print("python-dotenv not installed; pip install python-dotenv if needed")
+
+    db_url = os.getenv("DB_URL", "sqlite:///:memory:")
+    mode = os.getenv("APP_MODE", "dev")
+    print("DB_URL=", db_url)
+    print("APP_MODE=", mode)
+
+
+# ============================================================================
+# 40. CONCURRENCY CAUTIONS (GIL GUIDANCE)
+# ============================================================================
+
+def concurrency_cautions():
+    """Quick guidance on GIL, CPU vs I/O choices."""
+    print("GIL note: Python threads share the GIL; CPU-bound work -> multiprocessing or native extensions.")
+    print("I/O-bound work: threads or asyncio are fine; choose asyncio for many sockets, threads for simplicity.")
+    print("CPU-bound numeric: prefer numpy/numba which release the GIL.")
+
+
+# ============================================================================
+# 41. PACKAGING WORKFLOWS (poetry/pdm)
+# ============================================================================
+
+def packaging_workflows_notes():
+    """Mention poetry/pdm, lockfiles, reproducible installs."""
+    notes = r"""
+POETRY:
+-------
+poetry init
+poetry add requests
+poetry run python app.py
+poetry build
+
+PDM:
+----
+
+pdm add requests
+pdm run python app.py
+
+LOCKFILES & REPRODUCIBILITY:
+-----------------------------
+- Commit poetry.lock / pdm.lock
+- Use `pip install --require-hashes -r requirements.txt` for hash-locked installs
+"""
+    print(notes)
 
 
 # ============================================================================
@@ -1335,5 +1494,26 @@ if __name__ == "__main__":
     # 34. Packaging polish
     # packaging_polish_notes()
 
-    print("\nParts 1-34 ready. Uncomment a section above to run its demo.")
+    # 35. Property-based testing
+    # property_based_testing()
+
+    # 36. Typing extras
+    # typing_extras()
+
+    # 37. Sockets & basic networking
+    # sockets_basic_networking()
+
+    # 38. HTTP client ergonomics (httpx)
+    # http_client_ergonomics()
+
+    # 39. Config management (.env layering)
+    # config_management_notes()
+
+    # 40. Concurrency cautions
+    # concurrency_cautions()
+
+    # 41. Packaging workflows (poetry/pdm)
+    # packaging_workflows_notes()
+
+    print("\nParts 1-41 ready. Uncomment a section above to run its demo.")
     print("=" * 70)
