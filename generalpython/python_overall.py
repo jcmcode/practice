@@ -1095,7 +1095,12 @@ def property_based_testing():
 
 def typing_extras():
     """Literal, Final, Annotated, TypedDict total=False, runtime_checkable Protocol."""
-    from typing import Literal, Final, Annotated, TypedDict, Protocol, runtime_checkable
+    # Fallback to typing_extensions for Annotated on Python < 3.9
+    try:
+        from typing import Literal, Final, Annotated, TypedDict, Protocol, runtime_checkable
+    except ImportError:  # pragma: no cover - older Python
+        from typing import Literal, Final, TypedDict, Protocol, runtime_checkable
+        from typing_extensions import Annotated  # type: ignore
 
     STATUS: Final = "ok"
 
