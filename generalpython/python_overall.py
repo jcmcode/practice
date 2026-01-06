@@ -66,6 +66,12 @@ import itertools
 from collections import defaultdict, Counter, deque
 from dataclasses import dataclass
 
+# Typing helpers with a typing_extensions fallback for older Python runtimes
+try:
+    from typing import Annotated, Final, Literal, Protocol, TypedDict, TypeAlias, runtime_checkable
+except ImportError:  # pragma: no cover
+    from typing_extensions import Annotated, Final, Literal, Protocol, TypedDict, TypeAlias, runtime_checkable  # type: ignore
+
 # ============================================================================
 # 1. LANGUAGE BASICS
 # ============================================================================
@@ -1093,48 +1099,29 @@ def property_based_testing():
 # 36. TYPING EXTRAS
 # ============================================================================
 
+STATUS: Final[str] = "ok"
+Age: TypeAlias = Annotated[int, "years"]
+
+
+class UserPartial(TypedDict, total=False):
+    id: int
+    email: str
+    active: bool
+
+
+@runtime_checkable
+class SupportsLen(Protocol):
+    def __len__(self) -> int:
+        ...
+
+
 def typing_extras():
     """Literal, Final, Annotated, TypedDict total=False, runtime_checkable Protocol."""
-    # Fallbacks for older Python or missing typing_extensions
-    try:
-        from typing import Literal, Final, Annotated, TypedDict, Protocol, runtime_checkable
-    except ImportError:  # pragma: no cover
-        try:
-            from typing_extensions import Literal, Final, Annotated, TypedDict, Protocol, runtime_checkable  # type: ignore
-        except Exception:  # Last-resort stubs to avoid crashes
-            from typing import Any
-
-            def Annotated(tp: Any, *_args: Any, **_kwargs: Any):
-                return tp
-
-            def runtime_checkable(cls: Any):
-                return cls
-
-            Literal = Final = Any  # type: ignore
-
-            class Protocol:  # type: ignore
-                pass
-
-            class TypedDict(dict):  # type: ignore
-                pass
-
-    STATUS: Final = "ok"
 
     def greet(kind: Literal["hi", "bye"], name: str) -> str:
         return f"{kind} {name}"
 
-    Age = Annotated[int, "years"]
     age: Age = 42
-
-    class UserPartial(TypedDict, total=False):
-        id: int
-        email: str
-        active: bool
-
-    @runtime_checkable
-    class SupportsLen(Protocol):
-        def __len__(self) -> int:
-            ...
 
     sample: UserPartial = {"id": 1, "email": "ada@example.com"}
     print(greet("hi", "Ada"), STATUS, age, sample)
