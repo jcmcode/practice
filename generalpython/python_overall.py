@@ -13,7 +13,7 @@ CONTENTS (PART 1):
 3) Functions: defs, lambdas, args/kwargs, decorators, closures
 4) Error Handling: try/except/else/finally, custom exceptions, context managers
 5) Iteration Tools: iterators, generators, itertools essentials
-CONTENTS (PART 1 + PART 2 + PART 3 + PART 4 + PART 5):
+CONTENTS (PART 1 + PART 2 + PART 3 + PART 4 + PART 5 + EXTRAS):
 1) Language Basics: syntax, types, numbers, strings
 2) Collections: lists, tuples, sets, dicts, comprehensions
 3) Functions: defs, lambdas, args/kwargs, decorators, closures
@@ -29,9 +29,19 @@ CONTENTS (PART 1 + PART 2 + PART 3 + PART 4 + PART 5):
 13) Concurrency Quick Hits: threading, ThreadPoolExecutor, multiprocessing, asyncio
 14) Testing: unittest basics, pytest-style examples, fixtures mindset
 15) Packaging & Environments: venv basics, minimal package layout, CLI entrypoints
+16) CLI (argparse) quick start
+17) Datetime & timezones (zoneinfo)
+18) Regex essentials
+19) HTTP basics (urllib + requests-style)
+20) SQLite mini demo
+21) contextlib utilities
+22) tempfile quick hits
+23) Profiling & debugging (timeit, cProfile, breakpoint)
+24) Asyncio advanced patterns (tasks, semaphore, cancellation)
+25) Testing extras (unittest.mock, parametrization mindset)
 
 Planned for next parts (when you prompt):
-- (Completed through Part 5)
+- (Completed through 25 sections)
 ================================================================================
 """
 
@@ -718,6 +728,271 @@ pytest
 
 
 # ============================================================================
+# 16. CLI (argparse) QUICK START
+# ============================================================================
+
+def argparse_quick_start():
+    """Argparse demo using a fake argv list so it is safe to run here."""
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Demo CLI")
+    parser.add_argument("name", help="Name to greet")
+    parser.add_argument("--count", type=int, default=1, help="How many times")
+    parser.add_argument("--loud", action="store_true", help="Uppercase output")
+
+    args = parser.parse_args(["Ada", "--count", "2", "--loud"])  # fake argv
+
+    greeting = "hello" if not args.loud else "HELLO"
+    for _ in range(args.count):
+        print(f"{greeting}, {args.name}!")
+
+
+# ============================================================================
+# 17. DATETIME & TIMEZONES
+# ============================================================================
+
+def datetime_and_timezones():
+    """Working with datetime, parsing, formatting, zoneinfo"""
+    from datetime import datetime, timedelta, timezone
+    from zoneinfo import ZoneInfo
+
+    now = datetime.now(tz=timezone.utc)
+    later = now + timedelta(hours=3)
+
+    ny = now.astimezone(ZoneInfo("America/New_York"))
+    berlin = now.astimezone(ZoneInfo("Europe/Berlin"))
+
+    parsed = datetime.strptime("2024-12-31 23:30", "%Y-%m-%d %H:%M")
+    formatted = parsed.strftime("%b %d, %Y %I:%M %p")
+
+    print("UTC now:", now.isoformat())
+    print("UTC later:", later.isoformat())
+    print("NY:", ny.isoformat())
+    print("Berlin:", berlin.isoformat())
+    print("Parsed:", parsed)
+    print("Formatted:", formatted)
+
+
+# ============================================================================
+# 18. REGEX ESSENTIALS
+# ============================================================================
+
+def regex_essentials():
+    """Compile patterns, use groups, findall/search/sub"""
+    import re
+
+    text = "Contact us at support@example.com or sales@example.org"
+    email_pattern = re.compile(r"(?P<user>[\w.-]+)@(?P<host>[\w.-]+)")
+
+    all_emails = email_pattern.findall(text)
+    first = email_pattern.search(text)
+    redacted = email_pattern.sub("<hidden>", text)
+
+    print("Emails:", all_emails)
+    if first:
+        print("First user:", first.group("user"))
+        print("First host:", first.group("host"))
+    print("Redacted:", redacted)
+
+
+# ============================================================================
+# 19. HTTP BASICS (urllib + requests-style)
+# ============================================================================
+
+def http_basics():
+    """Tiny HTTP examples; handles offline gracefully."""
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen("https://example.com", timeout=3) as resp:
+            body = resp.read(80).decode("utf-8", errors="replace")
+            print("urllib status:", resp.status)
+            print("Body preview:", body.replace("\n", " ")[:120])
+    except Exception as e:
+        print("urllib fetch skipped or failed:", e)
+
+    try:
+        import requests  # type: ignore
+    except Exception:
+        requests = None
+
+    if requests:
+        try:
+            r = requests.get("https://example.com", timeout=3)
+            print("requests status:", r.status_code)
+            print("requests text preview:", r.text[:120].replace("\n", " "))
+        except Exception as e:
+            print("requests fetch failed:", e)
+    else:
+        print("requests not installed; pip install requests>=2.31 if needed")
+
+
+# ============================================================================
+# 20. SQLITE MINI DEMO
+# ============================================================================
+
+def sqlite_mini_demo():
+    """Create table, insert, query in memory."""
+    import sqlite3
+
+    conn = sqlite3.connect(":memory:")
+    cur = conn.cursor()
+    cur.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)")
+    cur.executemany("INSERT INTO users (name) VALUES (?)", [("Ada",), ("Linus",)])
+    conn.commit()
+
+    cur.execute("SELECT id, name FROM users ORDER BY id")
+    rows = cur.fetchall()
+    print("Rows:", rows)
+
+    conn.close()
+
+
+# ============================================================================
+# 21. CONTEXTLIB UTILITIES
+# ============================================================================
+
+def contextlib_utilities():
+    """Show @contextmanager, ExitStack, and suppress."""
+    import contextlib, time, io
+
+    @contextlib.contextmanager
+    def timer(label: str):
+        start = time.perf_counter()
+        try:
+            yield
+        finally:
+            elapsed = time.perf_counter() - start
+            print(f"{label} took {elapsed:.4f}s")
+
+    with timer("sleep 0.1"):
+        time.sleep(0.1)
+
+    # ExitStack to manage multiple contexts dynamically
+    with contextlib.ExitStack() as stack:
+        buf = stack.enter_context(io.StringIO())
+        buf.write("hello exitstack")
+        print("ExitStack buffer:", buf.getvalue())
+
+    # suppress to ignore expected exceptions
+    with contextlib.suppress(KeyError):
+        {}["missing"]
+    print("KeyError suppressed via contextlib.suppress")
+
+
+# ============================================================================
+# 22. TEMPFILE QUICK HITS
+# ============================================================================
+
+def tempfile_quick_hits():
+    """TemporaryDirectory and NamedTemporaryFile basics."""
+    import tempfile, pathlib
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_path = pathlib.Path(tmpdir)
+        file_path = tmp_path / "demo.txt"
+        file_path.write_text("temp data", encoding="utf-8")
+        print("Temp dir:", tmp_path)
+        print("Temp file exists:", file_path.exists())
+
+    # NamedTemporaryFile auto-deletes on close by default
+    with tempfile.NamedTemporaryFile(delete=True) as f:
+        f.write(b"bytes here")
+        f.flush()
+        print("NamedTemporaryFile path:", f.name)
+
+
+# ============================================================================
+# 23. PROFILING & DEBUGGING
+# ============================================================================
+
+def profiling_and_debugging():
+    """timeit, cProfile, and breakpoint note."""
+    import timeit, cProfile, pstats, io
+
+    def work():
+        return sum(i * i for i in range(10_000))
+
+    timing = timeit.timeit(work, number=100)
+    print(f"timeit 100 runs: {timing:.4f}s")
+
+    profiler = cProfile.Profile()
+    profiler.enable()
+    work()
+    profiler.disable()
+
+    s = io.StringIO()
+    ps = pstats.Stats(profiler, stream=s).sort_stats("cumtime")
+    ps.print_stats(5)
+    print("cProfile sample:\n", s.getvalue())
+
+    print("Use breakpoint() to drop into the debugger where needed.")
+
+
+# ============================================================================
+# 24. ASYNCIO ADVANCED PATTERNS
+# ============================================================================
+
+async def asyncio_advanced_patterns():
+    """Semaphores, create_task, cancellation."""
+    import asyncio
+
+    sem = asyncio.Semaphore(2)
+
+    async def limited(name, delay):
+        async with sem:
+            print(f"{name} start")
+            await asyncio.sleep(delay)
+            print(f"{name} end")
+            return name
+
+    # Demonstrate cancellation
+    async def cancellable():
+        try:
+            await asyncio.sleep(5)
+        except asyncio.CancelledError:
+            print("cancellable task cancelled")
+            raise
+
+    tasks = [asyncio.create_task(limited(f"job-{i}", 0.3 + i * 0.1)) for i in range(4)]
+    cancel_task = asyncio.create_task(cancellable())
+    asyncio.get_running_loop().call_later(0.5, cancel_task.cancel)
+
+    results = await asyncio.gather(*tasks, return_exceptions=False)
+    try:
+        await cancel_task
+    except asyncio.CancelledError:
+        pass
+
+    print("Semaphore-limited results:", results)
+
+
+def run_asyncio_advanced_patterns():
+    import asyncio
+    asyncio.run(asyncio_advanced_patterns())
+
+
+# ============================================================================
+# 25. TESTING EXTRAS (mock, parametrization mindset)
+# ============================================================================
+
+def testing_extras_mock_and_param():
+    """unittest.mock basics and notes on parametrized tests."""
+    from unittest import mock
+
+    class Service:
+        def fetch(self):
+            return "real"
+
+    svc = Service()
+    with mock.patch.object(Service, "fetch", return_value="fake") as patched:
+        assert svc.fetch() == "fake"
+        print("mock called:", patched.called)
+
+    print("Parametrization tip: in pytest use @pytest.mark.parametrize; in unittest loop over cases or subTest().")
+
+
+# ============================================================================
 # MAIN DEMO (Part 1)
 # ============================================================================
 if __name__ == "__main__":
@@ -781,5 +1056,35 @@ if __name__ == "__main__":
     # 15. Packaging & Environments
     # packaging_and_venv_notes()
 
-    print("\nParts 1-5 ready. Uncomment a section above to run its demo.")
+    # 16. CLI (argparse) quick start
+    # argparse_quick_start()
+
+    # 17. Datetime & timezones
+    # datetime_and_timezones()
+
+    # 18. Regex essentials
+    # regex_essentials()
+
+    # 19. HTTP basics
+    # http_basics()
+
+    # 20. SQLite mini demo
+    # sqlite_mini_demo()
+
+    # 21. contextlib utilities
+    # contextlib_utilities()
+
+    # 22. tempfile quick hits
+    # tempfile_quick_hits()
+
+    # 23. Profiling & debugging
+    # profiling_and_debugging()
+
+    # 24. Asyncio advanced patterns
+    # run_asyncio_advanced_patterns()
+
+    # 25. Testing extras (mock, parametrization)
+    # testing_extras_mock_and_param()
+
+    print("\nParts 1-25 ready. Uncomment a section above to run its demo.")
     print("=" * 70)
