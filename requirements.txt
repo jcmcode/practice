@@ -10,3 +10,4 @@ networkx
 pydantic
 fastapi
 jwt
+flask
